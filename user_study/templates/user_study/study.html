@@ -473,15 +473,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- IDEIGLENESEN - SESSION DEBUG -->
-<div style="background: #ff0000; color: white; padding: 10px; margin: 10px 0; border-radius: 5px;">
-    <strong>DEBUG INFO:</strong><br>
-    Version: {{ version }}<br>
-    {% if recommendations and recommendations|length > 0 %}
-        First Recipe Show Scores: {{ recommendations[0].get('show_scores', 'MISSING') }}<br>
-        First Recipe Show Explanation: {{ recommendations[0].get('show_explanation', 'MISSING') }}<br>
-    {% endif %}
-</div>
         <div class="header">
             <h1>🍽️ Recept Ajánlások</h1>
             <p>Értékelje az alábbi ajánlásokat</p>
