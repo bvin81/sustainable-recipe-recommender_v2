@@ -222,19 +222,18 @@
         </div>
         {% endif %}
 
-        <div class="step">
-            <div class="step-number">{% if version == 'v1' %}3{% else %}4{% endif %}</div>
-            <div class="step-content">
-                <h3>📋 Záró Kérdőív</h3>
-                <p>A recept értékelések után rövid kérdőívet tölt ki a rendszerről:</p>
-                <ul>
-                    <li>🖥️ Mennyire volt könnyű használni?</li>
-                    <li>✨ Mennyire volt jó minőségű az ajánlás?</li>
-                    <li>🤝 Mennyire bízik meg a rendszerben?</li>
-                    <li>😊 Mennyire elégedett összességében?</li>
-                </ul>
-            </div>
-        </div>
+      <div class="step">
+    <div class="step-content">
+        <h3>📋 Záró Kérdőív</h3>
+        <p>A recept értékelések után rövid kérdőívet tölt ki a rendszerről:</p>
+        <ul>
+            <li>🖥️ Mennyire volt könnyű használni?</li>
+            <li>✨ Mennyire volt jó minőségű az ajánlás?</li>
+            <li>🤝 Mennyire bízik meg a rendszerben?</li>
+            <li>😊 Mennyire elégedett összességében?</li>
+        </ul>
+    </div>
+</div>
 
         <div class="important-note">
             <h3>❗ Fontos Megjegyzések</h3>
@@ -246,28 +245,6 @@
             </ul>
         </div>
 
-        {% if version == 'v1' %}
-        <div class="version-specific v1" style="display: block;">
-            <div class="instruction-box">
-                <h3>📊 Az Ön Verziója: Alaprendszer</h3>
-                <p>Egy <strong>egyszerű ajánló rendszert</strong> fog tesztelni, amely népszerűség alapján javasol recepteket. Ez a kiindulási alap, amihez képest fejlesztjük a rendszert.</p>
-            </div>
-        </div>
-        {% elif version == 'v2' %}
-        <div class="version-specific v2" style="display: block;">
-            <div class="instruction-box">
-                <h3>🧠 Az Ön Verziója: Tudatos Rendszer</h3>
-                <p>Egy <strong>fejlett ajánló rendszert</strong> fog tesztelni, amely figyelembe veszi az egészségügyi és környezeti tényezőket is. Rövid magyarázatokat ad az ajánlásokhoz.</p>
-            </div>
-        </div>
-        {% else %}
-        <div class="version-specific v3" style="display: block;">
-            <div class="instruction-box">
-                <h3>🔍 Az Ön Verziója: Magyarázó Rendszer</h3>
-                <p>Egy <strong>átlátható ajánló rendszert</strong> fog tesztelni, amely részletes magyarázatokat ad minden ajánláshoz. Megtudhatja pontosan, hogy miért ajánlja az egyes recepteket.</p>
-            </div>
-        </div>
-        {% endif %}
 
         <div style="text-align: center; margin-top: 40px;">
             <a href="/study" class="btn">🚀 Tanulmány Megkezdése</a>
