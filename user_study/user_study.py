@@ -12,11 +12,12 @@ import random
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from flask import Blueprint, render_template, request, session, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, session, redirect, url_for, make_response, jsonify
 # Add these imports at the top if not already present
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
+import io
 
 class HybridRecipeRecommender:
     """Hibrid ajánlórendszer: keresés + content filtering + egységes scoring"""
@@ -1033,7 +1034,282 @@ def admin_stats():
         
     except Exception as e:
         return f"Stats error: {e}", 500
+# Add these routes to user_study.py after the admin_stats route
 
+@user_study_bp.route('/admin/export/csv')
+def export_csv():
+    """CSV export SPSS/Excel kompatibilis formátumban"""
+    try:
+        from flask import make_response
+        import io
+        import csv
+        
+        conn = db.get_connection()
+        
+        # Összevont adatok lekérése
+        query = '''
+        SELECT 
+            p.user_id,
+            p.age_group,
+            p.education,
+            p.cooking_frequency,
+            p.sustainability_awareness,
+            p.version,
+            p.is_completed,
+            p.created_at as registration_time,
+            q.system_usability,
+            q.recommendation_quality,
+            q.trust_level,
+            q.explanation_clarity,
+            q.sustainability_importance,
+            q.overall_satisfaction,
+            q.additional_comments,
+            q.timestamp as questionnaire_time,
+            GROUP_CONCAT(i.recipe_id) as rated_recipes,
+            GROUP_CONCAT(i.rating) as ratings,
+            GROUP_CONCAT(i.explanation_helpful) as explanation_ratings,
+            AVG(i.rating) as avg_rating,
+            COUNT(i.rating) as total_ratings,
+            AVG(i.view_time_seconds) as avg_view_time
+        FROM participants p
+        LEFT JOIN questionnaire q ON p.user_id = q.user_id
+        LEFT JOIN interactions i ON p.user_id = i.user_id
+        GROUP BY p.user_id
+        ORDER BY p.user_id
+        '''
+        
+        results = conn.execute(query).fetchall()
+        conn.close()
+        
+        if not results:
+            return "Nincs exportálható adat.", 404
+        
+        # CSV generálása
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Header
+        headers = [
+            'UserID', 'AgeGroup', 'Education', 'CookingFrequency', 'SustainabilityAwareness',
+            'Version', 'IsCompleted', 'RegistrationTime',
+            'SystemUsability', 'RecommendationQuality', 'TrustLevel', 'ExplanationClarity',
+            'SustainabilityImportance', 'OverallSatisfaction', 'AdditionalComments',
+            'QuestionnaireTime', 'RatedRecipes', 'Ratings', 'ExplanationRatings',
+            'AvgRating', 'TotalRatings', 'AvgViewTime'
+        ]
+        writer.writerow(headers)
+        
+        # Adatok
+        for row in results:
+            # Version mapping numerikusra (SPSS-hez)
+            version_num = {'v1': 1, 'v2': 2, 'v3': 3}.get(row['version'], 0)
+            
+            csv_row = [
+                row['user_id'],
+                row['age_group'],
+                row['education'],
+                row['cooking_frequency'],
+                row['sustainability_awareness'],
+                version_num,  # Numerikus verzió
+                1 if row['is_completed'] else 0,  # Boolean -> 0/1
+                row['registration_time'],
+                row['system_usability'],
+                row['recommendation_quality'],
+                row['trust_level'],
+                row['explanation_clarity'],
+                row['sustainability_importance'],
+                row['overall_satisfaction'],
+                row['additional_comments'] or '',
+                row['questionnaire_time'],
+                row['rated_recipes'] or '',
+                row['ratings'] or '',
+                row['explanation_ratings'] or '',
+                round(row['avg_rating'], 2) if row['avg_rating'] else '',
+                row['total_ratings'] or 0,
+                round(row['avg_view_time'], 2) if row['avg_view_time'] else ''
+            ]
+            writer.writerow(csv_row)
+        
+        # Response készítése
+        output.seek(0)
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename=user_study_data_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        return response
+        
+    except Exception as e:
+        return f"CSV export hiba: {e}", 500
+
+
+@user_study_bp.route('/admin/export/json')
+def export_json():
+    """JSON export API/programozás célokra"""
+    try:
+        conn = db.get_connection()
+        
+        # Participants
+        participants = conn.execute('SELECT * FROM participants').fetchall()
+        participants_data = [dict(row) for row in participants]
+        
+        # Interactions
+        interactions = conn.execute('SELECT * FROM interactions').fetchall()
+        interactions_data = [dict(row) for row in interactions]
+        
+        # Questionnaire
+        questionnaire = conn.execute('SELECT * FROM questionnaire').fetchall()
+        questionnaire_data = [dict(row) for row in questionnaire]
+        
+        conn.close()
+        
+        # JSON struktúra
+        export_data = {
+            'export_info': {
+                'timestamp': datetime.datetime.now().isoformat(),
+                'total_participants': len(participants_data),
+                'total_interactions': len(interactions_data),
+                'total_questionnaires': len(questionnaire_data),
+                'version': 'Sustainable Recipe Recommender v2.0'
+            },
+            'participants': participants_data,
+            'interactions': interactions_data,
+            'questionnaire': questionnaire_data,
+            'summary_stats': {
+                'completion_rate': len(questionnaire_data) / len(participants_data) if participants_data else 0,
+                'avg_interactions_per_user': len(interactions_data) / len(participants_data) if participants_data else 0,
+                'version_distribution': {}
+            }
+        }
+        
+        # Version distribution
+        for participant in participants_data:
+            version = participant['version']
+            if version not in export_data['summary_stats']['version_distribution']:
+                export_data['summary_stats']['version_distribution'][version] = 0
+            export_data['summary_stats']['version_distribution'][version] += 1
+        
+        response = jsonify(export_data)
+        response.headers['Content-Disposition'] = f'attachment; filename=user_study_data_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+        
+        return response
+        
+    except Exception as e:
+        return jsonify({'error': f'JSON export hiba: {e}'}), 500
+
+
+@user_study_bp.route('/admin/export/spss_syntax')
+def export_spss_syntax():
+    """SPSS syntax fájl generálása"""
+    try:
+        spss_syntax = '''
+* SPSS Syntax for Sustainable Recipe Recommender User Study
+* Generated automatically on {timestamp}
+
+* Load CSV data
+GET DATA
+ /TYPE=TXT
+ /FILE='user_study_data.csv'
+ /ENCODING='UTF8'
+ /DELIMITERS=","
+ /QUALIFIER='"'
+ /ARRANGEMENT=DELIMITED
+ /FIRSTCASE=2
+ /VARIABLES=
+ UserID F8.0
+ AgeGroup A20
+ Education A30
+ CookingFrequency A20
+ SustainabilityAwareness F2.0
+ Version F1.0
+ IsCompleted F1.0
+ RegistrationTime A25
+ SystemUsability F2.0
+ RecommendationQuality F2.0
+ TrustLevel F2.0
+ ExplanationClarity F2.0
+ SustainabilityImportance F2.0
+ OverallSatisfaction F2.0
+ AdditionalComments A500
+ QuestionnaireTime A25
+ RatedRecipes A100
+ Ratings A50
+ ExplanationRatings A50
+ AvgRating F4.2
+ TotalRatings F2.0
+ AvgViewTime F6.2.
+
+* Variable labels
+VARIABLE LABELS
+ UserID 'Unique User Identifier'
+ AgeGroup 'Age Group Category'
+ Education 'Education Level'
+ CookingFrequency 'Cooking Frequency'
+ SustainabilityAwareness 'Sustainability Awareness (1-5)'
+ Version 'System Version (1=v1, 2=v2, 3=v3)'
+ IsCompleted 'Study Completed (0=No, 1=Yes)'
+ SystemUsability 'System Usability Rating (1-5)'
+ RecommendationQuality 'Recommendation Quality Rating (1-5)'
+ TrustLevel 'Trust Level Rating (1-5)'
+ ExplanationClarity 'Explanation Clarity Rating (1-5)'
+ SustainabilityImportance 'Sustainability Importance Rating (1-5)'
+ OverallSatisfaction 'Overall Satisfaction Rating (1-5)'
+ AvgRating 'Average Recipe Rating'
+ TotalRatings 'Total Number of Ratings Given'
+ AvgViewTime 'Average View Time per Recipe (seconds)'.
+
+* Value labels
+VALUE LABELS Version
+ 1 'Baseline (v1)'
+ 2 'Score Disclosure (v2)'
+ 3 'Full Disclosure + XAI (v3)'.
+
+VALUE LABELS IsCompleted
+ 0 'Not Completed'
+ 1 'Completed'.
+
+* Descriptive statistics
+DESCRIPTIVES VARIABLES=SystemUsability RecommendationQuality TrustLevel 
+ ExplanationClarity SustainabilityImportance OverallSatisfaction
+ AvgRating TotalRatings AvgViewTime
+ /STATISTICS=MEAN STDDEV MIN MAX.
+
+* Frequency analysis
+FREQUENCIES VARIABLES=Version AgeGroup Education CookingFrequency IsCompleted.
+
+* One-way ANOVA for version comparison
+ONEWAY SystemUsability BY Version
+ /STATISTICS DESCRIPTIVES
+ /POSTHOC TUKEY.
+
+ONEWAY RecommendationQuality BY Version
+ /STATISTICS DESCRIPTIVES  
+ /POSTHOC TUKEY.
+
+ONEWAY TrustLevel BY Version
+ /STATISTICS DESCRIPTIVES
+ /POSTHOC TUKEY.
+
+ONEWAY OverallSatisfaction BY Version
+ /STATISTICS DESCRIPTIVES
+ /POSTHOC TUKEY.
+
+* Chi-square for categorical variables
+CROSSTABS
+ /TABLES=Version BY AgeGroup Education CookingFrequency
+ /STATISTICS=CHISQ.
+
+* Save processed dataset
+SAVE OUTFILE='user_study_processed.sav'.
+        '''.format(timestamp=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        
+        response = make_response(spss_syntax)
+        response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename=spss_analysis_{datetime.datetime.now().strftime("%Y%m%d")}.sps'
+        
+        return response
+        
+    except Exception as e:
+        return f"SPSS syntax hiba: {e}", 500
 # DEBUG route CSV ellenőrzéshez
 @user_study_bp.route('/debug/csv')
 def debug_csv():
