@@ -1138,6 +1138,7 @@ def debug_esi_zero():
         
     except Exception as e:
         return f"Debug error: {e}"
+        
 @user_study_bp.route('/debug/abc_testing')
 def debug_abc_testing():
     """Debug A/B/C testing működését"""
@@ -1187,7 +1188,120 @@ def debug_abc_testing():
         
     except Exception as e:
         return f"Debug error: {e}", 500
+# Add this to user_study.py right after the other debug routes (around line 650-700)
 
+@user_study_bp.route('/debug/emergency')
+def emergency_debug():
+    """Emergency debug - mi okozza a fallback módot"""
+    try:
+        result = "<h2>🚨 Emergency Debug</h2>"
+        
+        # 1. Basic system info
+        result += f"<h3>📊 System Status:</h3>"
+        result += f"<p><strong>Python:</strong> {sys.version}</p>"
+        result += f"<p><strong>Working dir:</strong> {os.getcwd()}</p>"
+        
+        # 2. Check imports
+        result += f"<h3>📦 Import Status:</h3>"
+        try:
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            from sklearn.metrics.pairwise import cosine_similarity
+            result += f"<p>✅ scikit-learn: MŰKÖDIK</p>"
+        except ImportError as e:
+            result += f"<p>❌ scikit-learn: HIÁNYZIK - {e}</p>"
+        
+        try:
+            import re
+            result += f"<p>✅ re module: MŰKÖDIK</p>"
+        except ImportError as e:
+            result += f"<p>❌ re module: HIÁNYZIK - {e}</p>"
+        
+        # 3. Check CSV
+        result += f"<h3>📊 CSV Status:</h3>"
+        csv_path = project_root / "data" / "processed_recipes.csv"
+        result += f"<p><strong>CSV path:</strong> {csv_path}</p>"
+        result += f"<p><strong>CSV exists:</strong> {csv_path.exists()}</p>"
+        
+        if csv_path.exists():
+            try:
+                df = pd.read_csv(csv_path)
+                result += f"<p>✅ CSV loaded: {len(df)} rows</p>"
+                result += f"<p><strong>Columns:</strong> {list(df.columns)}</p>"
+                
+                # Show first recipe
+                if len(df) > 0:
+                    first_recipe = df.iloc[0]
+                    result += f"<p><strong>First recipe:</strong> {first_recipe['title']}</p>"
+                
+            except Exception as e:
+                result += f"<p>❌ CSV load error: {e}</p>"
+        
+        # 4. Check recommender
+        result += f"<h3>🤖 Recommender Status:</h3>"
+        result += f"<p><strong>Recommender type:</strong> {type(recommender).__name__}</p>"
+        result += f"<p><strong>Has recipes_df:</strong> {hasattr(recommender, 'recipes_df')}</p>"
+        
+        if hasattr(recommender, 'recipes_df'):
+            if recommender.recipes_df is not None:
+                result += f"<p>✅ Recipes loaded: {len(recommender.recipes_df)} rows</p>"
+            else:
+                result += f"<p>❌ Recipes_df is None</p>"
+        
+        result += f"<p><strong>Has hybrid_recommender:</strong> {hasattr(recommender, 'hybrid_recommender')}</p>"
+        
+        if hasattr(recommender, 'hybrid_recommender'):
+            if recommender.hybrid_recommender is not None:
+                result += f"<p>✅ Hybrid recommender: INITIALIZED</p>"
+                result += f"<p><strong>Hybrid type:</strong> {type(recommender.hybrid_recommender).__name__}</p>"
+            else:
+                result += f"<p>❌ Hybrid recommender: NULL (ezért fallback!)</p>"
+        
+        # 5. Test basic function
+        result += f"<h3>🧪 Function Test:</h3>"
+        try:
+            # Próbáld meg a legegyszerűbb hívást
+            test_recs = recommender.get_recommendations('v1', '', {}, 2)
+            result += f"<p>✅ get_recommendations: {len(test_recs)} recipes returned</p>"
+            
+            if len(test_recs) > 0:
+                first_rec = test_recs[0]
+                result += f"<p><strong>First recipe title:</strong> {first_rec.get('title', 'NO TITLE')}</p>"
+                result += f"<p><strong>Show scores:</strong> {first_rec.get('show_scores', 'MISSING')}</p>"
+                result += f"<p><strong>Has explanation:</strong> {bool(first_rec.get('explanation', ''))}</p>"
+                
+        except Exception as e:
+            result += f"<p>❌ get_recommendations ERROR: {str(e)}</p>"
+            result += f"<p><strong>Error type:</strong> {type(e).__name__}</p>"
+            
+            # Részletes traceback
+            import traceback
+            result += f"<pre style='background: #f0f0f0; padding: 10px; font-size: 12px;'>{traceback.format_exc()}</pre>"
+        
+        # 6. Requirements check
+        result += f"<h3>📋 Requirements Status:</h3>"
+        try:
+            import pkg_resources
+            installed_packages = [d.project_name for d in pkg_resources.working_set]
+            sklearn_installed = any('scikit' in pkg.lower() for pkg in installed_packages)
+            result += f"<p><strong>Scikit-learn in packages:</strong> {sklearn_installed}</p>"
+            
+            # List some key packages
+            key_packages = ['pandas', 'numpy', 'flask', 'scikit-learn']
+            for pkg in key_packages:
+                try:
+                    version = pkg_resources.get_distribution(pkg).version
+                    result += f"<p>✅ {pkg}: {version}</p>"
+                except:
+                    result += f"<p>❌ {pkg}: NOT FOUND</p>"
+                    
+        except ImportError:
+            result += f"<p>⚠️ pkg_resources not available</p>"
+        
+        return result
+        
+    except Exception as e:
+        import traceback
+        return f"<h1>TOTAL EMERGENCY ERROR:</h1><p>{e}</p><pre>{traceback.format_exc()}</pre>"
 
 # Export
 __all__ = ['user_study_bp']
