@@ -773,23 +773,59 @@ def instructions():
 
 @user_study_bp.route('/study')
 def study():
-    """Fő tanulmány oldal - KÉPEKKEL ÉS CSV ADATOKKAL"""
+    """Fő tanulmány oldal - A/B/C TESTING + HIBRID KERESÉS"""
     if 'user_id' not in session:
         return redirect(url_for('user_study.register'))
     
     version = session.get('version', 'v1')
     
-    # Ajánlások lekérése
-    recommendations = recommender.get_recommendations(version=version, n_recommendations=5)
+    # Keresési paraméter
+    search_ingredients = request.args.get('search', '').strip()
+    
+    # Felhasználói preferenciák session-ből
+    user_preferences = {
+        'sustainability_awareness': session.get('sustainability_awareness', 3),
+        'cooking_frequency': session.get('cooking_frequency', ''),
+        'education': session.get('education', '')
+    }
+    
+    # HIBRID ajánlások lekérése - EGYSÉGES ALGORITMUS
+    recommendations = recommender.get_recommendations(
+        version=version, 
+        search_ingredients=search_ingredients,
+        user_preferences=user_preferences,
+        n_recommendations=5
+    )
     
     if not recommendations:
-        return "❌ Hiba: Nem sikerült betölteni a recepteket. Ellenőrizd a CSV fájlokat.", 500
+        return "❌ Hiba: Nem sikerült betölteni a recepteket. Próbálja újra később.", 500
     
-    print(f"🔍 Template-nek átadott {len(recommendations)} ajánlás ({version})")
+    print(f"🔍 Template-nek átadott {len(recommendations)} ajánlás ({version}) - Keresés: '{search_ingredients}'")
     
     return render_template('study.html', 
                          recommendations=recommendations, 
-                         version=version)
+                         version=version,
+                         search_term=search_ingredients)
+
+# Add ingredient suggestions API
+@user_study_bp.route('/api/ingredient_suggestions')
+def ingredient_suggestions():
+    """Összetevő javaslatok API"""
+    try:
+        partial_input = request.args.get('q', '').strip()
+        
+        if len(partial_input) < 2:
+            return jsonify([])
+        
+        if recommender.hybrid_recommender:
+            suggestions = recommender.hybrid_recommender.get_ingredient_suggestions(partial_input)
+            return jsonify(suggestions)
+        else:
+            return jsonify([])
+            
+    except Exception as e:
+        print(f"Suggestion API error: {e}")
+        return jsonify([])
 
 @user_study_bp.route('/rate_recipe', methods=['POST'])
 def rate_recipe():
