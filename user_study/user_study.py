@@ -697,30 +697,118 @@ class EnhancedRecipeRecommender:
             print(f"❌ Hibrid ajánlási hiba: {e}")
             return self._fallback_recommendations(version, n_recommendations)
     
-    def _fallback_recommendations(self, version, n_recommendations):
-        """Fallback ajánlások ha a hibrid rendszer nem működik"""
+   # user_study.py - Cseréld ki a _fallback_recommendations metódust az EnhancedRecipeRecommender osztályban
+
+def _fallback_recommendations(self, version, n_recommendations):
+    """Fallback ajánlások ha a hibrid rendszer nem működik"""
+    print(f"⚠️ FALLBACK MODE: Generating {n_recommendations} sample recommendations for {version}")
+    
+    try:
+        # Ha van betöltött CSV, használjuk azt
         if self.recipes_df is not None and len(self.recipes_df) > 0:
+            print(f"📊 Using CSV data: {len(self.recipes_df)} recipes available")
             sample_size = min(n_recommendations, len(self.recipes_df))
             recommendations = self.recipes_df.sample(n=sample_size).to_dict('records')
+        else:
+            # Ha nincs CSV, generálj sample adatokat
+            print("🔧 Generating hardcoded fallback recipes")
+            sample_recipes = [
+                {
+                    'recipeid': 1,
+                    'title': 'Hagyományos Gulyásleves',
+                    'ingredients': 'marhahús, hagyma, paprika, paradicsom, burgonya, fokhagyma, kömény, majoranna',
+                    'instructions': 'A húst kockákra vágjuk és enyhén megsózzuk. Megdinszteljük a hagymát, hozzáadjuk a paprikát. Felöntjük vízzel és főzzük 1.5 órát.',
+                    'images': 'https://images.unsplash.com/photo-1547592180-85f173990554?w=400&h=300&fit=crop',
+                    'HSI': 75.0, 'ESI': 60.0, 'PPI': 90.0, 'composite_score': 71.0
+                },
+                {
+                    'recipeid': 2,
+                    'title': 'Vegetáriánus Lecsó',
+                    'ingredients': 'paprika, paradicsom, hagyma, tojás, tofu, olívaolaj, só, bors, fokhagyma',
+                    'instructions': 'A hagymát és fokhagymát megdinszteljük olívaolajban. Hozzáadjuk a felszeletelt paprikát.',
+                    'images': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop',
+                    'HSI': 85.0, 'ESI': 80.0, 'PPI': 70.0, 'composite_score': 78.0
+                },
+                {
+                    'recipeid': 3,
+                    'title': 'Halászlé Szegedi Módra',
+                    'ingredients': 'ponty, csuka, harcsa, hagyma, paradicsom, paprika, só, babérlevél',
+                    'instructions': 'A halakat megtisztítjuk és feldaraboljuk. A halak fejéből és farkából erős alapot főzünk.',
+                    'images': 'https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=400&h=300&fit=crop',
+                    'HSI': 80.0, 'ESI': 70.0, 'PPI': 75.0, 'composite_score': 74.0
+                },
+                {
+                    'recipeid': 4,
+                    'title': 'Túrós Csusza',
+                    'ingredients': 'széles metélt, túró, tejföl, szalonna, hagyma, só, bors',
+                    'instructions': 'A tésztát sós vízben megfőzzük és leszűrjük. A szalonnát kockákra vágjuk és kisütjük.',
+                    'images': 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400&h=300&fit=crop',
+                    'HSI': 65.0, 'ESI': 55.0, 'PPI': 80.0, 'composite_score': 65.0
+                },
+                {
+                    'recipeid': 5,
+                    'title': 'Gombapaprikás Galuskával',
+                    'ingredients': 'gomba, hagyma, paprika, tejföl, liszt, tojás, petrezselyem, olaj',
+                    'instructions': 'A gombát felszeleteljük és kisütjük. Hagymát dinsztelünk, paprikát adunk hozzá.',
+                    'images': 'https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=400&h=300&fit=crop',
+                    'HSI': 70.0, 'ESI': 75.0, 'PPI': 65.0, 'composite_score': 70.0
+                }
+            ]
             
-            # Verzió-specifikus információ hozzáadása
-            for rec in recommendations:
-                if version == 'v1':
-                    rec['show_scores'] = False
-                    rec['show_explanation'] = False
-                    rec['explanation'] = ""
-                elif version == 'v2':
-                    rec['show_scores'] = True
-                    rec['show_explanation'] = False
-                    rec['explanation'] = ""
-                elif version == 'v3':
-                    rec['show_scores'] = True
-                    rec['show_explanation'] = True
-                    rec['explanation'] = f"Fallback ajánlás - kompozit score: {rec.get('composite_score', 0):.1f}/100"
-                
-                rec['search_relevance'] = 0.0
+            # Válassz ki annyit amennyit kértek
+            recommendations = sample_recipes[:n_recommendations]
+        
+        # Verzió-specifikus információ hozzáadása MINDEN recepthez
+        for rec in recommendations:
+            # Biztosítsd hogy minden szükséges mező létezik
+            if 'HSI' not in rec:
+                rec['HSI'] = 70.0
+            if 'ESI' not in rec:
+                rec['ESI'] = 75.0
+            if 'PPI' not in rec:
+                rec['PPI'] = 80.0
+            if 'composite_score' not in rec:
+                rec['composite_score'] = (rec['ESI'] * 0.4 + rec['HSI'] * 0.4 + rec['PPI'] * 0.2)
             
-            return recommendations
+            # A/B/C testing verzió-specifikus megjelenítés
+            if version == 'v1':
+                rec['show_scores'] = False
+                rec['show_explanation'] = False
+                rec['explanation'] = ""
+            elif version == 'v2':
+                rec['show_scores'] = True
+                rec['show_explanation'] = False
+                rec['explanation'] = ""
+            elif version == 'v3':
+                rec['show_scores'] = True
+                rec['show_explanation'] = True
+                rec['explanation'] = f"Ezt a receptet {rec['composite_score']:.1f}/100 összpontszám alapján ajánljuk (40% környezeti + 40% egészség + 20% népszerűség). Fallback módban működik."
+            
+            # Search relevance fallback
+            rec['search_relevance'] = 0.0
+        
+        print(f"✅ Fallback recommendations generated: {len(recommendations)} recipes for version {version}")
+        return recommendations
+        
+    except Exception as e:
+        print(f"❌ CRITICAL FALLBACK ERROR: {e}")
+        # Ultimate fallback - egyetlen minimal recept
+        minimal_recipe = {
+            'recipeid': 1,
+            'title': 'Alaprecept (Rendszer helyreállítás alatt)',
+            'ingredients': 'Alapösszetevők',
+            'instructions': 'Alapinstrukciók',
+            'images': 'https://via.placeholder.com/400x300/cccccc/666666?text=Recipe',
+            'HSI': 70.0,
+            'ESI': 70.0,
+            'PPI': 70.0,
+            'composite_score': 70.0,
+            'show_scores': version != 'v1',
+            'show_explanation': version == 'v3',
+            'explanation': 'Rendszer helyreállítás alatt.' if version == 'v3' else '',
+            'search_relevance': 0.0
+        }
+        return [minimal_recipe]
         return []
 
 # Global objektumok
