@@ -531,9 +531,7 @@
             <div class="progress-fill"></div>
         </div>
 
-    
-<!-- KERESŐMEZŐ - add hozzá a progress bar után -->
-        
+<!-- EGYSZERŰSÍTETT keresőmező - cseréld ki a meglévő search-section-t ezzel -->
 <div class="search-section">
     <div class="search-container">
         <h3>🔍 Keresés összetevők alapján</h3>
@@ -545,8 +543,7 @@
                        name="search" 
                        id="searchInput"
                        placeholder="pl. csirke, hagyma, paprika..."
-                       value="{{ search_term or '' }}"
-                       autocomplete="off">
+                       value="{{ search_term or '' }}">
                 <button type="submit" class="search-btn">
                     <span class="search-icon">🔍</span>
                     Keresés
@@ -556,22 +553,197 @@
                     Törlés
                 </button>
             </div>
-            
-            <!-- Auto-complete suggestions dropdown -->
-            <div id="suggestions" class="suggestions-dropdown"></div>
         </form>
         
         {% if search_term %}
-<div class="search-results-info" id="searchResultsInfo">
-    <span class="search-tag">
-        🔍 Keresés: "<strong>{{ search_term }}</strong>"
-        <span class="match-count" id="matchCount"></span>
-    </span>
-    <a href="/study" class="clear-search-link">✖ Összes recept</a>
-</div>
+        <div class="search-results-info" id="searchResultsInfo">
+            <span class="search-tag">
+                🔍 Keresés: "<strong>{{ search_term }}</strong>"
+                <span class="match-count" id="matchCount"></span>
+            </span>
+            <a href="/study" class="clear-search-link">✖ Összes recept</a>
+        </div>
         {% endif %}
     </div>
 </div>
+
+<style>
+/* EGYSZERŰSÍTETT Search Interface Styling - NINCS auto-complete */
+.search-section {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    border-left: 5px solid #27ae60;
+}
+
+.search-container h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.search-container p {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.search-input-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+#searchInput {
+    flex: 1;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 25px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+#searchInput:focus {
+    border-color: #27ae60;
+    box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+}
+
+.search-btn, .clear-btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.search-btn {
+    background: linear-gradient(45deg, #27ae60, #2ecc71);
+    color: white;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+}
+
+.search-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+.clear-btn {
+    background: #e74c3c;
+    color: white;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.clear-btn:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+}
+
+/* Search results info */
+.search-results-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 15px;
+    padding: 10px 15px;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+}
+
+.search-tag {
+    background: linear-gradient(45deg, #3498db, #2980b9);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 14px;
+}
+
+.clear-search-link {
+    color: #e74c3c;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+.clear-search-link:hover {
+    background: #ffebee;
+    text-decoration: none;
+}
+
+/* Search term highlighting */
+.search-highlight {
+    background: linear-gradient(45deg, #fff3cd, #ffeaa7);
+    color: #856404;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid #ffeaa7;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    animation: highlightPulse 0.8s ease-in-out;
+}
+
+@keyframes highlightPulse {
+    0% { 
+        background: #fff3cd;
+        transform: scale(1);
+    }
+    50% { 
+        background: #ffc107;
+        transform: scale(1.05);
+    }
+    100% { 
+        background: linear-gradient(45deg, #fff3cd, #ffeaa7);
+        transform: scale(1);
+    }
+}
+
+/* Enhanced search results info when terms are highlighted */
+.search-results-info.has-highlights {
+    background: linear-gradient(45deg, #e8f5e8, #d4edda);
+    border-left: 4px solid #28a745;
+}
+
+.search-results-info.has-highlights .search-tag {
+    background: linear-gradient(45deg, #28a745, #34ce57);
+}
+
+/* Recipe cards with highlighted terms get a subtle glow */
+.recipe-card.has-highlights {
+    border-color: #ffc107;
+    box-shadow: 0 4px 20px rgba(255, 193, 7, 0.3);
+}
+
+.recipe-card.has-highlights:hover {
+    box-shadow: 0 8px 30px rgba(255, 193, 7, 0.4);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .search-input-container {
+        flex-direction: column;
+    }
+    
+    .search-btn, .clear-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .search-results-info {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+}
 
 <style>
 /* Search Interface Styling */
@@ -745,91 +917,11 @@
 </style>
 
 <script>
-// Search functionality
-let debounceTimer;
-let currentSearch = '';
-
-document.getElementById('searchInput').addEventListener('input', function(e) {
-    const query = e.target.value.trim();
-    
-    // Clear previous timer
-    clearTimeout(debounceTimer);
-    
-    // Hide suggestions if query too short
-    if (query.length < 2) {
-        hideSuggestions();
-        return;
-    }
-    
-    // Debounce API calls
-    debounceTimer = setTimeout(() => {
-        fetchSuggestions(query);
-    }, 300);
-});
-
-async function fetchSuggestions(query) {
-    try {
-        const response = await fetch(`/api/ingredient_suggestions?q=${encodeURIComponent(query)}`);
-        const suggestions = await response.json();
-        
-        displaySuggestions(suggestions);
-    } catch (error) {
-        console.error('Suggestion fetch error:', error);
-        hideSuggestions();
-    }
-}
-
-function displaySuggestions(suggestions) {
-    const dropdown = document.getElementById('suggestions');
-    
-    if (!suggestions || suggestions.length === 0) {
-        hideSuggestions();
-        return;
-    }
-    
-    dropdown.innerHTML = suggestions.map(suggestion => `
-        <div class="suggestion-item" onclick="selectSuggestion('${suggestion}')">
-            <span class="suggestion-icon">🥘</span>
-            <span>${suggestion}</span>
-        </div>
-    `).join('');
-    
-    dropdown.style.display = 'block';
-}
-
-function hideSuggestions() {
-    document.getElementById('suggestions').style.display = 'none';
-}
-
-function selectSuggestion(suggestion) {
-    const input = document.getElementById('searchInput');
-    const currentValue = input.value;
-    
-    // Parse current ingredients
-    const ingredients = currentValue.split(',').map(s => s.trim());
-    
-    // Remove last incomplete ingredient and add suggestion
-    ingredients[ingredients.length - 1] = suggestion;
-    
-    // Update input
-    input.value = ingredients.join(', ') + ', ';
-    input.focus();
-    
-    hideSuggestions();
-}
-
+// EGYSZERŰSÍTETT Search functionality - NINCS auto-complete
 function clearSearch() {
     document.getElementById('searchInput').value = '';
-    hideSuggestions();
     window.location.href = '/study';
 }
-
-// Hide suggestions when clicking outside
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.search-input-container')) {
-        hideSuggestions();
-    }
-});
 
 // Form submission enhancement
 document.getElementById('searchForm').addEventListener('submit', function(e) {
@@ -849,61 +941,7 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Search interface initialized');
-    
-    // Focus search input if empty
-    const searchInput = document.getElementById('searchInput');
-    if (!searchInput.value) {
-        // Optional: auto-focus on page load
-        // searchInput.focus();
-    }
-});
-
-    // Add this JavaScript to the study.html template, in the existing <script> section
-
-function highlightSearchTerms() {
-    const searchTerm = "{{ search_term or '' }}";
-    if (!searchTerm) return;
-    
-    // Parse search terms (split by comma and clean)
-    const searchTerms = searchTerm.split(',')
-        .map(term => term.trim().toLowerCase())
-        .filter(term => term.length > 0);
-    
-    if (searchTerms.length === 0) return;
-    
-    // Find all ingredient lists
-    const ingredientLists = document.querySelectorAll('.ingredients-list');
-    
-    ingredientLists.forEach(ingredientList => {
-        let html = ingredientList.innerHTML;
-        
-        // Highlight each search term
-        searchTerms.forEach(searchTerm => {
-            // Create case-insensitive regex with word boundaries
-            const regex = new RegExp(`\\b(${escapeRegex(searchTerm)})\\b`, 'gi');
-            
-            // Replace with highlighted version
-            html = html.replace(regex, '<strong class="search-highlight">$1</strong>');
-        });
-        
-        ingredientList.innerHTML = html;
-    });
-    
-    console.log(`✅ Highlighted search terms: ${searchTerms.join(', ')}`);
-}
-
-function escapeRegex(string) {
-    // Escape special regex characters
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// Call highlighting when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    highlightSearchTerms();
-    
-    // Also highlight after any dynamic content updates
-    setTimeout(highlightSearchTerms, 100);
+    console.log('Simplified search interface initialized');
 });
 </script>
 
