@@ -649,98 +649,6 @@ def debug_csv():
                 
             except Exception as e:
                 result += f"CSV read error: {e}<br>"
-
-      # Add this debug route to user_study.py
-
-@user_study_bp.route('/debug/esi_zero')
-def debug_esi_zero():
-    """Debug ESI=0 values"""
-    try:
-        result = "<h2>🔍 ESI=0 Debug Analysis</h2>"
-        
-        # Load processed CSV
-        csv_path = project_root / "data" / "processed_recipes.csv"
-        if not csv_path.exists():
-            return "❌ processed_recipes.csv not found"
-        
-        df = pd.read_csv(csv_path)
-        result += f"<h3>📊 CSV Statistics:</h3>"
-        result += f"Total recipes: {len(df)}<br>"
-        
-        # Check score columns
-        score_cols = ['ESI', 'HSI', 'PPI', 'composite_score']
-        for col in score_cols:
-            if col in df.columns:
-                min_val = df[col].min()
-                max_val = df[col].max()
-                mean_val = df[col].mean()
-                zero_count = (df[col] == 0).sum()
-                
-                result += f"<b>{col}:</b> {min_val:.2f} - {max_val:.2f} (avg: {mean_val:.2f}, zeros: {zero_count})<br>"
-        
-        # Check raw scores if available
-        result += f"<h3>🌱 Raw Environmental Scores:</h3>"
-        if 'env_score_raw' in df.columns:
-            env_min = df['env_score_raw'].min()
-            env_max = df['env_score_raw'].max()
-            env_mean = df['env_score_raw'].mean()
-            
-            result += f"env_score_raw range: {env_min:.2f} - {env_max:.2f} (avg: {env_mean:.2f})<br>"
-            
-            # Show normalization calculation
-            result += f"<h4>Normalization Formula:</h4>"
-            result += f"ESI = 100 - ((env_score_raw - {env_min:.2f}) / ({env_max:.2f} - {env_min:.2f}) * 100)<br><br>"
-            
-            # Show examples
-            result += f"<h4>Normalization Examples:</h4>"
-            sample_recipes = df.head(5)
-            for _, recipe in sample_recipes.iterrows():
-                raw_env = recipe['env_score_raw']
-                esi = recipe['ESI']
-                
-                if env_max > env_min:
-                    calculated_esi = 100 - ((raw_env - env_min) / (env_max - env_min) * 100)
-                else:
-                    calculated_esi = 70.0
-                
-                result += f"<b>{recipe['title'][:40]}...</b><br>"
-                result += f"   Raw env_score: {raw_env:.2f}<br>"
-                result += f"   Stored ESI: {esi:.2f}<br>"
-                result += f"   Calculated ESI: {calculated_esi:.2f}<br>"
-                result += f"   Match: {'✅' if abs(esi - calculated_esi) < 0.01 else '❌'}<br><br>"
-        
-        # Find recipes with ESI=0
-        zero_esi_recipes = df[df['ESI'] == 0]
-        if len(zero_esi_recipes) > 0:
-            result += f"<h3>❌ Recipes with ESI=0 ({len(zero_esi_recipes)} found):</h3>"
-            for _, recipe in zero_esi_recipes.head(10).iterrows():
-                result += f"<b>{recipe['title']}:</b><br>"
-                result += f"   ESI: {recipe['ESI']:.2f}<br>"
-                result += f"   HSI: {recipe['HSI']:.2f}<br>"
-                result += f"   PPI: {recipe['PPI']:.2f}<br>"
-                if 'env_score_raw' in df.columns:
-                    result += f"   Raw env_score: {recipe['env_score_raw']:.2f}<br>"
-                result += f"<br>"
-        else:
-            result += f"<h3>✅ No recipes with ESI=0 found</h3>"
-        
-        # Composite score verification
-        result += f"<h3>🔢 Composite Score Verification:</h3>"
-        sample = df.sample(n=3)
-        for _, recipe in sample.iterrows():
-            stored_composite = recipe['composite_score']
-            calculated_composite = recipe['ESI'] * 0.4 + recipe['HSI'] * 0.4 + recipe['PPI'] * 0.2
-            
-            result += f"<b>{recipe['title'][:40]}...</b><br>"
-            result += f"   ESI: {recipe['ESI']:.1f}, HSI: {recipe['HSI']:.1f}, PPI: {recipe['PPI']:.1f}<br>"
-            result += f"   Stored composite: {stored_composite:.2f}<br>"
-            result += f"   Calculated composite: {calculated_composite:.2f}<br>"
-            result += f"   Match: {'✅' if abs(stored_composite - calculated_composite) < 0.01 else '❌'}<br><br>"
-        
-        return result
-        
-    except Exception as e:
-        return f"Debug error: {e}"
         
         # Original CSV ellenőrzés
         original_csv = project_root / "hungarian_recipes_github.csv"
@@ -774,6 +682,52 @@ def debug_esi_zero():
         
     except Exception as e:
         return f"Debug error: {e}"
+
+@user_study_bp.route('/debug/esi_zero')
+def debug_esi_zero():
+    """Debug ESI=0 values"""
+    try:
+        result = "<h2>🔍 ESI=0 Debug Analysis</h2>"
+        
+        # Load processed CSV
+        csv_path = project_root / "data" / "processed_recipes.csv"
+        if not csv_path.exists():
+            return "❌ processed_recipes.csv not found"
+        
+        df = pd.read_csv(csv_path)
+        result += f"<h3>📊 CSV Statistics:</h3>"
+        result += f"Total recipes: {len(df)}<br>"
+        
+        # Check score columns
+        score_cols = ['ESI', 'HSI', 'PPI', 'composite_score']
+        for col in score_cols:
+            if col in df.columns:
+                min_val = df[col].min()
+                max_val = df[col].max()
+                mean_val = df[col].mean()
+                zero_count = (df[col] == 0).sum()
+                
+                result += f"<b>{col}:</b> {min_val:.2f} - {max_val:.2f} (avg: {mean_val:.2f}, zeros: {zero_count})<br>"
+        
+        # Find recipes with ESI=0
+        zero_esi_recipes = df[df['ESI'] == 0]
+        if len(zero_esi_recipes) > 0:
+            result += f"<h3>❌ Recipes with ESI=0 ({len(zero_esi_recipes)} found):</h3>"
+            for _, recipe in zero_esi_recipes.head(5).iterrows():
+                result += f"<b>{recipe['title']}:</b><br>"
+                result += f"   ESI: {recipe['ESI']:.2f}<br>"
+                result += f"   HSI: {recipe['HSI']:.2f}<br>"
+                result += f"   PPI: {recipe['PPI']:.2f}<br>"
+                result += f"<br>"
+        else:
+            result += f"<h3>✅ No recipes with ESI=0 found</h3>"
+        
+        return result
+        
+    except Exception as e:
+        return f"Debug error: {e}"
+
+
 
 # Export
 __all__ = ['user_study_bp']
