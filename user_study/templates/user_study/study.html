@@ -468,6 +468,55 @@
             display: inline-block;
             font-weight: 500;
             }
+
+            /* Add this CSS to the study.html template, in the existing <style> section */
+
+/* Search term highlighting */
+.search-highlight {
+    background: linear-gradient(45deg, #fff3cd, #ffeaa7);
+    color: #856404;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid #ffeaa7;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    animation: highlightPulse 0.8s ease-in-out;
+}
+
+@keyframes highlightPulse {
+    0% { 
+        background: #fff3cd;
+        transform: scale(1);
+    }
+    50% { 
+        background: #ffc107;
+        transform: scale(1.05);
+    }
+    100% { 
+        background: linear-gradient(45deg, #fff3cd, #ffeaa7);
+        transform: scale(1);
+    }
+}
+
+/* Enhanced search results info when terms are highlighted */
+.search-results-info.has-highlights {
+    background: linear-gradient(45deg, #e8f5e8, #d4edda);
+    border-left: 4px solid #28a745;
+}
+
+.search-results-info.has-highlights .search-tag {
+    background: linear-gradient(45deg, #28a745, #34ce57);
+}
+
+/* Recipe cards with highlighted terms get a subtle glow */
+.recipe-card.has-highlights {
+    border-color: #ffc107;
+    box-shadow: 0 4px 20px rgba(255, 193, 7, 0.3);
+}
+
+.recipe-card.has-highlights:hover {
+    box-shadow: 0 8px 30px rgba(255, 193, 7, 0.4);
+}
         }
     </style>
 </head>
@@ -512,12 +561,13 @@
         </form>
         
         {% if search_term %}
-        <div class="search-results-info">
-            <span class="search-tag">
-                🔍 Keresés: "<strong>{{ search_term }}</strong>"
-            </span>
-            <a href="/study" class="clear-search-link">✖ Összes recept</a>
-        </div>
+<div class="search-results-info" id="searchResultsInfo">
+    <span class="search-tag">
+        🔍 Keresés: "<strong>{{ search_term }}</strong>"
+        <span class="match-count" id="matchCount"></span>
+    </span>
+    <a href="/study" class="clear-search-link">✖ Összes recept</a>
+</div>
         {% endif %}
     </div>
 </div>
@@ -806,6 +856,53 @@ document.addEventListener('DOMContentLoaded', function() {
         // Optional: auto-focus on page load
         // searchInput.focus();
     }
+});
+
+    // Add this JavaScript to the study.html template, in the existing <script> section
+
+function highlightSearchTerms() {
+    const searchTerm = "{{ search_term or '' }}";
+    if (!searchTerm) return;
+    
+    // Parse search terms (split by comma and clean)
+    const searchTerms = searchTerm.split(',')
+        .map(term => term.trim().toLowerCase())
+        .filter(term => term.length > 0);
+    
+    if (searchTerms.length === 0) return;
+    
+    // Find all ingredient lists
+    const ingredientLists = document.querySelectorAll('.ingredients-list');
+    
+    ingredientLists.forEach(ingredientList => {
+        let html = ingredientList.innerHTML;
+        
+        // Highlight each search term
+        searchTerms.forEach(searchTerm => {
+            // Create case-insensitive regex with word boundaries
+            const regex = new RegExp(`\\b(${escapeRegex(searchTerm)})\\b`, 'gi');
+            
+            // Replace with highlighted version
+            html = html.replace(regex, '<strong class="search-highlight">$1</strong>');
+        });
+        
+        ingredientList.innerHTML = html;
+    });
+    
+    console.log(`✅ Highlighted search terms: ${searchTerms.join(', ')}`);
+}
+
+function escapeRegex(string) {
+    // Escape special regex characters
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Call highlighting when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    highlightSearchTerms();
+    
+    // Also highlight after any dynamic content updates
+    setTimeout(highlightSearchTerms, 100);
 });
 </script>
 
