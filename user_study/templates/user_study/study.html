@@ -491,16 +491,6 @@
             <div class="progress-fill"></div>
         </div>
 
-        <div class="version-badge {{ version }}">
-            {% if version == 'v1' %}
-                📊 Alaprendszer - Népszerűség alapú ajánlások
-            {% elif version == 'v2' %}
-                🧠 Tudatos Rendszer - Kiegyensúlyozott ajánlások
-            {% else %}
-                🔍 Magyarázó Rendszer - Átlátható ajánlások
-            {% endif %}
-        </div>
-
         <div class="instruction-banner">
             <strong>📋 Feladat:</strong> Értékelje minden receptet 1-5 csillag skálán az alapján, hogy mennyire tetszik Önnek!
             {% if version == 'v2' or version == 'v3' %}
