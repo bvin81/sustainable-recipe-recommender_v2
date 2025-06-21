@@ -121,8 +121,16 @@ def process_hungarian_csv(df):
         # Clean text data
         df = clean_text_data(df)
         
-        # Process images
-       def process_image_urls(df):
+        # Process images - JAVÍTVA!
+        df = process_image_urls(df)
+        
+        return df
+        
+    except Exception as e:
+        print(f"❌ Process error: {e}")
+        return None
+
+def process_image_urls(df):
     """Process image URLs - JAVÍTOTT verzió idézőjelek és többszörös URL-ek kezelésével"""
     print("🖼️ Processing image URLs...")
     
@@ -200,81 +208,6 @@ def get_fallback_image():
     ]
     return np.random.choice(fallback_images)
 
-def process_original_csv(original_path, output_path):
-    """Eredeti CSV feldolgozása - ENCODING FIX-szel"""
-    try:
-        # TÖBB ENCODING PRÓBÁLÁSA
-        encodings = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252', 'iso-8859-1', 'windows-1252']
-        df = None
-        used_encoding = None
-        
-        for encoding in encodings:
-            try:
-                print(f"🔄 Próbálkozás {encoding} encoding-gal...")
-                df = pd.read_csv(original_path, encoding=encoding)
-                used_encoding = encoding
-                print(f"✅ Sikeres betöltés {encoding} encoding-gal!")
-                break
-            except (UnicodeDecodeError, pd.errors.EmptyDataError) as e:
-                print(f"   ❌ {encoding} sikertelen: {str(e)[:50]}...")
-                continue
-        
-        if df is None:
-            print("❌ CSV betöltés minden encoding-gal sikertelen!")
-            return CSVProcessor.create_sample_csv(output_path)
-        
-        print(f"📋 Eredeti CSV betöltve: {len(df)} recept, encoding: {used_encoding}")
-        print(f"📋 Oszlopok: {list(df.columns)}")
-        
-        # Column mapping
-        column_mapping = {
-            'name': 'title',
-            'ingredients': 'ingredients', 
-            'instructions': 'instructions',
-            'images': 'images'
-        }
-        
-        # Rename columns if they exist
-        for old_col, new_col in column_mapping.items():
-            if old_col in df.columns and old_col != new_col:
-                df = df.rename(columns={old_col: new_col})
-        
-        # Add recipe IDs
-        df['recipeid'] = range(1, len(df) + 1)
-        
-        # Process scores
-        if all(col in df.columns for col in ['env_score', 'nutri_score', 'meal_score']):
-            df = CSVProcessor.normalize_scores(df)
-            print("✅ Score normalizálás kész")
-        else:
-            print("⚠️ Score oszlopok hiányoznak, random értékek")
-            df['HSI'] = np.random.uniform(60, 90, len(df))
-            df['ESI'] = np.random.uniform(50, 85, len(df))  
-            df['PPI'] = np.random.uniform(70, 95, len(df))
-        
-        # Calculate composite score
-        df['composite_score'] = (df['ESI'] * 0.4 + df['HSI'] * 0.4 + df['PPI'] * 0.2)
-        
-        # Clean text data
-        df = CSVProcessor.clean_text_data(df)
-        
-        # KULCS: Képek feldolgozása a javított függvénnyel
-        df = process_image_urls(df)
-        
-        # Sample selection
-        sample_size = min(50, len(df))
-        df_sample = df.sample(n=sample_size, random_state=42)
-        
-        # Save
-        df_sample.to_csv(output_path, index=False, encoding='utf-8')
-        print(f"✅ Processed CSV mentve: {output_path} ({len(df_sample)} recept)")
-        
-        return output_path
-        
-    except Exception as e:
-        print(f"❌ CSV feldolgozási hiba: {e}")
-        return CSVProcessor.create_sample_csv(output_path)
-
 def normalize_scores(df):
     """Normalize score columns to 0-100 scale"""
     print("📊 Normalizing scores...")
@@ -326,50 +259,6 @@ def clean_text_data(df):
             df[col] = df[col].astype(str).str.strip()
     
     return df
-
-def process_image_urls(df):
-    """Process image URLs"""
-    print("🖼️ Processing image URLs...")
-    
-    def clean_image_url(img_string):
-        if pd.isna(img_string) or not img_string or img_string.strip() == '':
-            return get_fallback_image()
-        
-        # If it's a string with multiple URLs, take the first one
-        if isinstance(img_string, str):
-            urls = str(img_string).split(',')
-            first_url = urls[0].strip().strip('"').strip("'")
-            
-            # Check if it's a valid URL
-            if first_url.startswith('http'):
-                return first_url
-            elif first_url.startswith('www.'):
-                return f"https://{first_url}"
-        
-        return get_fallback_image()
-    
-    # Apply image processing
-    df['images'] = df['images'].apply(clean_image_url)
-    
-    # Count external vs fallback images
-    external_count = sum(1 for img in df['images'] if img.startswith('http') and 'unsplash' not in img)
-    fallback_count = len(df) - external_count
-    
-    print(f"   External images: {external_count}")
-    print(f"   Fallback images: {fallback_count}")
-    
-    return df
-
-def get_fallback_image():
-    """Get fallback image URL"""
-    fallback_images = [
-        'https://images.unsplash.com/photo-1547592180-85f173990554?w=400&h=300&fit=crop',
-        'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop',
-        'https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=400&h=300&fit=crop',
-        'https://images.unsplash.com/photo-1558030006-450675393462?w=400&h=300&fit=crop',
-        'https://images.unsplash.com/photo-1572441713132-51c75654db73?w=400&h=300&fit=crop'
-    ]
-    return np.random.choice(fallback_images)
 
 def create_fallback_csv(output_path):
     """Create fallback CSV if original processing fails"""
