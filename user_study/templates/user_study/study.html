@@ -530,31 +530,39 @@
                     </div>
                     {% endif %}
 
-                    <!-- Pontszámok -->
-                    <div class="metrics">
-                        <div class="metric health">
-                            💚 Egészség: {{ "%.0f"|format(recipe.HSI) }}/100
-                        </div>
-                        <div class="metric environment">
-                            🌱 Környezet: {{ "%.0f"|format(recipe.ESI) }}/100
-                        </div>
-                        <div class="metric popularity">
-                            ⭐ Népszerűség: {{ "%.0f"|format(recipe.PPI) }}/100
-                        </div>
-                    </div>
+                  <!-- KONDICIONÁLIS SCORE MEGJELENÍTÉS -->
+{% if recipe.show_scores %}
+<div class="metrics">
+    <div class="metric health">
+        💚 Egészség: {{ "%.0f"|format(recipe.HSI) }}/100
+    </div>
+    <div class="metric environment">
+        🌱 Környezet: {{ "%.0f"|format(recipe.ESI) }}/100
+    </div>
+    <div class="metric popularity">
+        ⭐ Népszerűség: {{ "%.0f"|format(recipe.PPI) }}/100
+    </div>
+</div>
+{% else %}
+<!-- V1 csoport: Rejtett score-ok -->
+<div class="metrics-hidden">
+    <div class="metric-placeholder">
+        <span class="metric-label">🍽️ Részletes recept információ elérhető értékelés után</span>
+    </div>
+</div>
+{% endif %}
 
-                    <!-- Magyarázat -->
-                    {% if version == 'v2' or version == 'v3' %}
-                    <div class="explanation">
-                        <div class="explanation-title">
-                            💡 Miért ajánljuk ezt a receptet?
-                        </div>
-                        <div class="explanation-content">
-                            {{ recipe.explanation|safe }}
-                        </div>
-                    </div>
-                    {% endif %}
-
+<!-- KONDICIONÁLIS MAGYARÁZAT MEGJELENÍTÉS -->
+{% if recipe.show_explanation and recipe.explanation %}
+<div class="explanation">
+    <div class="explanation-title">
+        💡 Miért ajánljuk ezt a receptet?
+    </div>
+    <div class="explanation-content">
+        {{ recipe.explanation|safe }}
+    </div>
+</div>
+{% endif %}
                     <!-- Értékelési szekció -->
                     <div class="rating-section">
                         <div class="rating-title">⭐ Mennyire tetszik ez a recept?</div>
