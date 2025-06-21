@@ -893,6 +893,7 @@ def admin_stats():
             stats['completion_rate'] = stats['completed_participants'] / stats['total_participants']
         else:
             stats['completion_rate'] = 0
+            
         
         # Verzió eloszlás
         version_results = conn.execute('''
