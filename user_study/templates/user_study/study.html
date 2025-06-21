@@ -531,8 +531,9 @@
             <div class="progress-fill"></div>
         </div>
 
-        <!-- Add this to the study.html template right after the progress bar -->
+    
 <!-- KERESŐMEZŐ - add hozzá a progress bar után -->
+        
 <div class="search-section">
     <div class="search-container">
         <h3>🔍 Keresés összetevők alapján</h3>
@@ -1215,6 +1216,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Study page loaded with version: {{ version }}');
             console.log('Total recipes to rate:', totalRecipes);
+
+                highlightSearchTerms();
+                setTimeout(updateMatchCounter, 200);
             
             // Debug: Check instructions
             const instructionElements = document.querySelectorAll('.instructions');
