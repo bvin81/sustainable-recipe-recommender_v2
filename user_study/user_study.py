@@ -13,7 +13,284 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from flask import Blueprint, render_template, request, session, redirect, url_for, jsonify
+# Add these imports at the top if not already present
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import re
 
+class HybridRecipeRecommender:
+    """Hibrid ajánlórendszer: keresés + content filtering + egységes scoring"""
+    
+    def __init__(self, csv_path):
+        self.recipes_df = pd.read_csv(csv_path)
+        self.tfidf_vectorizer = None
+        self.tfidf_matrix = None
+        self.ingredient_index = None
+        self._prepare_content_features()
+        
+    def _prepare_content_features(self):
+        """Content filtering előkészítése"""
+        print("🔧 Content features előkészítése...")
+        
+        # Összetevők szöveg tisztítása és normalizálása
+        self.recipes_df['ingredients_clean'] = self.recipes_df['ingredients'].apply(
+            self._clean_ingredients
+        )
+        
+        # TF-IDF vektorizálás az összetevőkre
+        self.tfidf_vectorizer = TfidfVectorizer(
+            max_features=500,
+            stop_words=None,
+            ngram_range=(1, 2),
+            min_df=1  # Csökkentett min_df a kis adatbázishoz
+        )
+        
+        self.tfidf_matrix = self.tfidf_vectorizer.fit_transform(
+            self.recipes_df['ingredients_clean']
+        )
+        
+        # Összetevő index építése gyors kereséshez
+        self._build_ingredient_index()
+        
+        print(f"✅ {len(self.recipes_df)} recept feldolgozva content filtering-hez")
+    
+    def _clean_ingredients(self, ingredients_text):
+        """Összetevők szöveg tisztítása"""
+        if pd.isna(ingredients_text):
+            return ""
+        
+        # Alapvető tisztítás
+        text = str(ingredients_text).lower()
+        
+        # Magyar ékezetek normalizálása (opcionális)
+        replacements = {
+            'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ö': 'o', 
+            'ő': 'o', 'ú': 'u', 'ü': 'u', 'ű': 'u'
+        }
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        
+        # Felesleges karakterek eltávolítása
+        text = re.sub(r'[^\w\s,]', ' ', text)
+        text = re.sub(r'\s+', ' ', text)
+        
+        return text.strip()
+    
+    def _build_ingredient_index(self):
+        """Összetevő index építése gyors kereséshez"""
+        self.ingredient_index = {}
+        
+        for idx, ingredients in enumerate(self.recipes_df['ingredients_clean']):
+            # Összetevők szétválasztása
+            ingredient_list = [
+                ing.strip() for ing in ingredients.split(',') 
+                if ing.strip()
+            ]
+            
+            for ingredient in ingredient_list:
+                if ingredient not in self.ingredient_index:
+                    self.ingredient_index[ingredient] = []
+                self.ingredient_index[ingredient].append(idx)
+    
+    def search_by_ingredients(self, search_ingredients, max_results=20):
+        """Keresés összetevők alapján"""
+        if not search_ingredients:
+            return list(range(len(self.recipes_df)))
+        
+        # Keresési kifejezések normalizálása
+        search_terms = [
+            self._clean_ingredients(term.strip()) 
+            for term in search_ingredients.split(',')
+            if term.strip()
+        ]
+        
+        # Releváns receptek keresése
+        relevant_recipes = set()
+        ingredient_matches = {}
+        
+        for search_term in search_terms:
+            # Pontos egyezés
+            if search_term in self.ingredient_index:
+                matching_recipes = self.ingredient_index[search_term]
+                relevant_recipes.update(matching_recipes)
+                
+                for recipe_idx in matching_recipes:
+                    if recipe_idx not in ingredient_matches:
+                        ingredient_matches[recipe_idx] = 0
+                    ingredient_matches[recipe_idx] += 1
+            
+            # Részleges egyezés (fuzzy matching)
+            else:
+                for ingredient, recipe_indices in self.ingredient_index.items():
+                    if search_term in ingredient or ingredient in search_term:
+                        relevant_recipes.update(recipe_indices)
+                        
+                        for recipe_idx in recipe_indices:
+                            if recipe_idx not in ingredient_matches:
+                                ingredient_matches[recipe_idx] = 0
+                            ingredient_matches[recipe_idx] += 0.5
+        
+        # Ha nincs találat, használj TF-IDF hasonlóságot
+        if not relevant_recipes:
+            relevant_recipes = self._tfidf_search(search_ingredients, max_results)
+            return list(relevant_recipes)[:max_results]
+        
+        # Rendezés az egyezések száma szerint
+        sorted_recipes = sorted(
+            relevant_recipes, 
+            key=lambda x: ingredient_matches.get(x, 0), 
+            reverse=True
+        )
+        
+        return sorted_recipes[:max_results]
+    
+    def _tfidf_search(self, search_query, max_results=20):
+        """TF-IDF alapú keresés"""
+        # Keresési lekérdezés vektorizálása
+        query_clean = self._clean_ingredients(search_query)
+        query_vector = self.tfidf_vectorizer.transform([query_clean])
+        
+        # Hasonlóság számítása
+        similarity_scores = cosine_similarity(query_vector, self.tfidf_matrix).flatten()
+        
+        # Top receptek kiválasztása
+        top_indices = similarity_scores.argsort()[-max_results:][::-1]
+        
+        return [idx for idx in top_indices if similarity_scores[idx] > 0.05]  # Alacsonyabb threshold
+    
+    def get_recommendations(self, version='v1', search_ingredients="", user_preferences=None, n_recommendations=5):
+        """EGYSÉGES ajánlási algoritmus - csak információ megjelenítés különbözik"""
+        
+        # 1. KERESÉS ALAPÚ SZŰRÉS (minden verzióban ugyanaz)
+        if search_ingredients.strip():
+            candidate_indices = self.search_by_ingredients(search_ingredients, max_results=20)
+            candidate_recipes = self.recipes_df.iloc[candidate_indices].copy()
+            print(f"🔍 Keresés '{search_ingredients}' -> {len(candidate_recipes)} találat")
+        else:
+            candidate_recipes = self.recipes_df.copy()
+            print(f"📊 Teljes adatbázis -> {len(candidate_recipes)} recept")
+        
+        if len(candidate_recipes) == 0:
+            print("❌ Nincs találat a keresésre")
+            return []
+        
+        # 2. EGYSÉGES SCORING (minden verzióban UGYANAZ)
+        search_boost = self._calculate_search_boost(candidate_recipes, search_ingredients)
+        candidate_recipes['recommendation_score'] = (
+            candidate_recipes['ESI'] * 0.4 +        # 40% környezeti
+            candidate_recipes['HSI'] * 0.4 +        # 40% egészség
+            candidate_recipes['PPI'] * 0.2 +        # 20% népszerűség
+            search_boost * 0.1                      # 10% keresési relevancia
+        )
+        
+        # 3. EGYSÉGES KIVÁLASZTÁS (minden verzióban UGYANAZ)
+        final_recommendations = candidate_recipes.nlargest(n_recommendations, 'recommendation_score')
+        recommendations = final_recommendations.to_dict('records')
+        
+        # 4. VERZIÓ-SPECIFIKUS INFORMÁCIÓ DISCLOSURE
+        for rec in recommendations:
+            rec['search_relevance'] = self._calculate_search_relevance(rec, search_ingredients)
+            
+            # A/B/C különbségek CSAK az információ megjelenítésében
+            if version == 'v1':
+                # V1: BASELINE - Rejtett score-ok, nincs magyarázat
+                rec['show_scores'] = False
+                rec['show_explanation'] = False
+                rec['explanation'] = ""
+                
+            elif version == 'v2':
+                # V2: SCORE DISCLOSURE - Látható score-ok, nincs magyarázat
+                rec['show_scores'] = True
+                rec['show_explanation'] = False
+                rec['explanation'] = ""
+                
+            elif version == 'v3':
+                # V3: FULL DISCLOSURE - Látható score-ok + magyarázat
+                rec['show_scores'] = True
+                rec['show_explanation'] = True
+                rec['explanation'] = self._generate_explanation(rec, search_ingredients)
+        
+        print(f"✅ {len(recommendations)} ajánlás generálva ({version}) - Egységes algoritmus, verzió-specifikus megjelenítés")
+        return recommendations
+    
+    def _calculate_search_boost(self, recipes_df, search_ingredients):
+        """Keresési relevancia boost számítása"""
+        if not search_ingredients.strip():
+            return pd.Series([0.0] * len(recipes_df))
+        
+        search_terms = [term.strip().lower() for term in search_ingredients.split(',') if term.strip()]
+        boost_scores = []
+        
+        for _, recipe in recipes_df.iterrows():
+            recipe_ingredients = recipe['ingredients'].lower()
+            matches = sum(1 for term in search_terms if term in recipe_ingredients)
+            boost = (matches / len(search_terms)) * 100 if search_terms else 0
+            boost_scores.append(boost)
+        
+        return pd.Series(boost_scores, index=recipes_df.index)
+    
+    def _calculate_search_relevance(self, recipe, search_ingredients):
+        """Keresési relevancia számítása egy recepthez"""
+        if not search_ingredients.strip():
+            return 0.0
+        
+        search_terms = [term.strip().lower() for term in search_ingredients.split(',') if term.strip()]
+        recipe_ingredients = recipe['ingredients'].lower()
+        matches = sum(1 for term in search_terms if term in recipe_ingredients)
+        
+        return matches / len(search_terms) if search_terms else 0.0
+    
+    def _generate_explanation(self, recipe, search_ingredients=""):
+        """Magyarázat generálás V3 verzióhoz"""
+        explanations = []
+        
+        # Keresési relevancia magyarázat
+        if search_ingredients.strip():
+            relevance = recipe.get('search_relevance', 0)
+            if relevance >= 0.8:
+                explanations.append(f"🔍 Tökéletesen illeszkedik a keresett összetevőkhöz")
+            elif relevance >= 0.5:
+                explanations.append(f"🔍 Jól illeszkedik a kereséshez ({relevance:.0%})")
+            elif relevance > 0:
+                explanations.append(f"🔍 Részben tartalmazza a keresett összetevőket")
+        
+        # Score-alapú magyarázatok
+        env_score = recipe['ESI']
+        health_score = recipe['HSI'] 
+        pop_score = recipe['PPI']
+        
+        if env_score >= 70:
+            explanations.append(f"🌱 Környezetbarát ({env_score:.0f}/100 pont)")
+        if health_score >= 70:
+            explanations.append(f"💚 Egészséges ({health_score:.0f}/100 pont)")
+        if pop_score >= 70:
+            explanations.append(f"⭐ Népszerű ({pop_score:.0f}/100 pont)")
+        
+        if not explanations:
+            explanations.append("🍽️ Kiegyensúlyozott összetétel minden szempontból")
+        
+        # Összesített magyarázat kompozícióval
+        composite_score = env_score * 0.4 + health_score * 0.4 + pop_score * 0.2
+        
+        final_explanation = f"Ezt a receptet {composite_score:.1f}/100 összpontszám alapján ajánljuk "
+        final_explanation += f"(40% környezeti + 40% egészség + 20% népszerűség). "
+        final_explanation += " • ".join(explanations)
+        
+        return final_explanation
+    
+    def get_ingredient_suggestions(self, partial_input, max_suggestions=10):
+        """Összetevő javaslatok auto-complete-hez"""
+        if len(partial_input) < 2:
+            return []
+        
+        partial_clean = self._clean_ingredients(partial_input)
+        suggestions = []
+        
+        for ingredient in self.ingredient_index.keys():
+            if partial_clean in ingredient:
+                suggestions.append(ingredient)
+        
+        return sorted(suggestions)[:max_suggestions]
 # Project path setup
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -352,14 +629,23 @@ class CSVProcessor:
         return output_path
 
 class EnhancedRecipeRecommender:
-    """Recept ajánló rendszer - JAVÍTOTT"""
+    """Hibrid recept ajánló rendszer - EGYSÉGES ALGORITMUS + A/B/C TESTING"""
     
     def __init__(self):
         # CSV létrehozása/ellenőrzése
         self.csv_path = CSVProcessor.create_processed_csv()
         self.recipes_df = self.load_recipes()
         
-        print(f"🍽️ Recept rendszer inicializálva: {len(self.recipes_df) if self.recipes_df is not None else 0} recept")
+        # Hibrid rendszer inicializálása
+        if self.recipes_df is not None:
+            try:
+                self.hybrid_recommender = HybridRecipeRecommender(str(self.csv_path))
+                print(f"🍽️ Hibrid ajánló rendszer inicializálva: {len(self.recipes_df)} recept")
+            except Exception as e:
+                print(f"⚠️ Hibrid ajánló inicializálási hiba: {e}")
+                self.hybrid_recommender = None
+        else:
+            self.hybrid_recommender = None
     
     def load_recipes(self):
         """Receptek betöltése CSV-ből"""
@@ -379,62 +665,63 @@ class EnhancedRecipeRecommender:
                 print(f"⚠️ Hiányzó oszlopok: {missing_cols}")
                 return None
             
-            # Debug: képek ellenőrzése
-            print(f"🖼️ Képek ellenőrzése:")
-            for i in range(min(3, len(df))):
-                recipe = df.iloc[i]
-                print(f"   {recipe['title']}: {recipe['images']}")
-            
             return df
             
         except Exception as e:
             print(f"❌ CSV betöltési hiba: {e}")
             return None
     
-    def get_recommendations(self, version='v1', n_recommendations=5):
-        """Ajánlások lekérése"""
-        if self.recipes_df is None or len(self.recipes_df) == 0:
-            print("❌ Nincs recept adat!")
-            return []
+    def get_recommendations(self, version='v1', search_ingredients="", user_preferences=None, n_recommendations=5):
+        """HIBRID ajánlások lekérése - A/B/C TESTING"""
+        if self.hybrid_recommender is None:
+            print("❌ Hibrid ajánló nem elérhető! Fallback...")
+            return self._fallback_recommendations(version, n_recommendations)
         
-        # Sample kiválasztás
-        sample_size = min(n_recommendations, len(self.recipes_df))
-        recommendations = self.recipes_df.sample(n=sample_size).to_dict('records')
-        
-        # Magyarázatok hozzáadása
-        for rec in recommendations:
-            if version in ['v2', 'v3']:
-                rec['explanation'] = self.generate_explanation(rec, version)
-        
-        print(f"✅ {len(recommendations)} ajánlás generálva ({version})")
-        
-        # Debug: ajánlások ellenőrzése
-        print("🔍 Ajánlás debug:")
-        for i, rec in enumerate(recommendations):
-            print(f"   {i+1}. {rec['title']} - Kép: {rec.get('images', 'NINCS')[:60]}...")
-        
-        return recommendations
+        try:
+            # Felhasználói preferenciák session-ből
+            if user_preferences is None:
+                user_preferences = {}
+            
+            # Hibrid ajánló hívása
+            recommendations = self.hybrid_recommender.get_recommendations(
+                version=version,
+                search_ingredients=search_ingredients,
+                user_preferences=user_preferences,
+                n_recommendations=n_recommendations
+            )
+            
+            print(f"✅ {len(recommendations)} hibrid ajánlás generálva ({version})")
+            return recommendations
+            
+        except Exception as e:
+            print(f"❌ Hibrid ajánlási hiba: {e}")
+            return self._fallback_recommendations(version, n_recommendations)
     
-    def generate_explanation(self, recipe, version):
-        """Magyarázat generálása"""
-        explanations = []
-        
-        if recipe['HSI'] > 70:
-            explanations.append("💚 Magas tápérték és egészséges összetevők")
-        if recipe['ESI'] > 70:
-            explanations.append("🌱 Környezetbarát ingrediensek")
-        if recipe['PPI'] > 80:
-            explanations.append("⭐ Népszerű és kipróbált recept")
-        
-        if not explanations:
-            explanations.append("🍽️ Kiegyensúlyozott összetétel")
-        
-        if version == 'v3':
-            detailed = f"Ez a recept {recipe['composite_score']:.0f}/100 pontot ért el összesített értékelésünkben. "
-            detailed += " • ".join(explanations)
-            return detailed
-        else:
-            return " • ".join(explanations)
+    def _fallback_recommendations(self, version, n_recommendations):
+        """Fallback ajánlások ha a hibrid rendszer nem működik"""
+        if self.recipes_df is not None and len(self.recipes_df) > 0:
+            sample_size = min(n_recommendations, len(self.recipes_df))
+            recommendations = self.recipes_df.sample(n=sample_size).to_dict('records')
+            
+            # Verzió-specifikus információ hozzáadása
+            for rec in recommendations:
+                if version == 'v1':
+                    rec['show_scores'] = False
+                    rec['show_explanation'] = False
+                    rec['explanation'] = ""
+                elif version == 'v2':
+                    rec['show_scores'] = True
+                    rec['show_explanation'] = False
+                    rec['explanation'] = ""
+                elif version == 'v3':
+                    rec['show_scores'] = True
+                    rec['show_explanation'] = True
+                    rec['explanation'] = f"Fallback ajánlás - kompozit score: {rec.get('composite_score', 0):.1f}/100"
+                
+                rec['search_relevance'] = 0.0
+            
+            return recommendations
+        return []
 
 # Global objektumok
 db = UserStudyDatabase()
