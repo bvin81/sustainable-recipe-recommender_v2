@@ -202,7 +202,7 @@ class CSVProcessor:
             
             # Sample választás (50 recept)
             sample_size = min(50, len(df))
-            df_sample = df.sample(n=sample_size, random_state=42)
+            df_sample = df.sample(n=sample_size)
             
             # Mentés
             df_sample.to_csv(output_path, index=False, encoding='utf-8')
@@ -399,7 +399,7 @@ class EnhancedRecipeRecommender:
         
         # Sample kiválasztás
         sample_size = min(n_recommendations, len(self.recipes_df))
-        recommendations = self.recipes_df.sample(n=sample_size, random_state=42).to_dict('records')
+        recommendations = self.recipes_df.sample(n=sample_size).to_dict('records')
         
         # Magyarázatok hozzáadása
         for rec in recommendations:
