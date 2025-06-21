@@ -223,7 +223,7 @@ class HungarianRecipeProcessor:
             current_sample_size = sample_per_quartile + (1 if i < remainder else 0)
             
             if len(quartile_data) >= current_sample_size:
-                sampled = quartile_data.sample(n=current_sample_size, random_state=42)
+                sampled = quartile_data.sample(n=current_sample_size)
             else:
                 sampled = quartile_data
             
