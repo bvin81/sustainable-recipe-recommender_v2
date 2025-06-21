@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Valós Idejű Statisztikák - Sustainable Recipe Recommender</title>
+    <title>Valós idejű statisztikák - Fenntartható Receptajánló</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -114,48 +114,48 @@
 </head>
 <body>
     <div class="header">
-        <h1>📊 Valós Idejű Statisztikák</h1>
-        <p>Sustainable Recipe Recommender User Study</p>
+        <h1>📊 Valós idejű statisztikák</h1>
+        <p>Fenntartható Receptajánló - Esettanulmány</p>
     </div>
 
     <div class="refresh-timer">
         🔄 Automatikus frissítés: <span id="countdown">30</span> másodperc
         <button onclick="refreshPage()" style="margin-left: 15px; padding: 5px 15px; border: none; border-radius: 15px; background: #27ae60; color: white; cursor: pointer;">
-            Frissítés Most
+            Frissítés most
         </button>
     </div>
 
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-number">{{ stats.get('total_participants', 0) }}</div>
-            <div class="stat-label">Összes Résztvevő</div>
+            <div class="stat-label">Összes résztvevő</div>
         </div>
         
         <div class="stat-card">
             <div class="stat-number">{{ stats.get('completed_participants', 0) }}</div>
-            <div class="stat-label">Befejezett Tanulmány</div>
+            <div class="stat-label">Befejezett tanulmány</div>
         </div>
         
         <div class="stat-card">
             <div class="stat-number">{{ "%.1f"|format(stats.get('completion_rate', 0) * 100) }}%</div>
-            <div class="stat-label">Befejezési Arány</div>
+            <div class="stat-label">Befejezési arány</div>
         </div>
         
         <div class="stat-card">
             <div class="stat-number">{{ "%.1f"|format(stats.get('avg_interactions_per_user', 0)) }}</div>
-            <div class="stat-label">Átlag Interakció/Fő</div>
+            <div class="stat-label">Átlag interakció/Fő</div>
         </div>
     </div>
 
     <div class="section">
-        <h2 class="section-title">🔄 Verzió Eloszlás (A/B/C Testing)</h2>
+        <h2 class="section-title">🔄 Verzió eloszlás (A/B/C Testing)</h2>
         <table>
             <thead>
                 <tr>
                     <th>Verzió</th>
                     <th>Regisztrált</th>
                     <th>Befejezett</th>
-                    <th>Befejezési Arány</th>
+                    <th>Befejezési arány</th>
                     <th>Arány</th>
                 </tr>
             </thead>
@@ -183,13 +183,13 @@
 
     {% if stats.get('average_ratings') %}
     <div class="section">
-        <h2 class="section-title">⭐ Átlagos Értékelések Verzió Szerint</h2>
+        <h2 class="section-title">⭐ Átlagos őrtékelések verzió szerint</h2>
         <table>
            <thead>
                <tr>
                    <th>Verzió</th>
-                   <th>Átlagos Értékelés</th>
-                   <th>Értékelések Száma</th>
+                   <th>Átlagos értékelés</th>
+                   <th>Értékelések száma</th>
                    <th>Tendencia</th>
                </tr>
            </thead>
@@ -223,16 +223,16 @@
 
    {% if stats.get('questionnaire_results') %}
    <div class="section">
-       <h2 class="section-title">📋 Kérdőív Eredmények Verzió Szerint</h2>
+       <h2 class="section-title">📋 Kérdőív eredmények verzió szerint</h2>
        <table>
            <thead>
                <tr>
                    <th>Verzió</th>
                    <th>Használhatóság</th>
-                   <th>Ajánlás Minőség</th>
-                   <th>Bizalom Szint</th>
-                   <th>Magyarázat Tisztaság</th>
-                   <th>Összesített Elégedettség</th>
+                   <th>Ajánlás minőség</th>
+                   <th>Bizalomszint</th>
+                   <th>Magyarázat érthetőség</th>
+                   <th>Összesített elégedettség</th>
                </tr>
            </thead>
            <tbody>
@@ -258,7 +258,7 @@
        </table>
        
        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-           <h4>🎯 Gyors Betekintés:</h4>
+           <h4>🎯 Gyors áttekintés:</h4>
            <ul style="margin: 0; color: #555;">
                <li><strong>Legjobb használhatóság:</strong> 
                    {% set best_usability = stats.get('questionnaire_results', []) | selectattr('avg_usability') | max(attribute='avg_usability') if stats.get('questionnaire_results') else None %}
@@ -278,7 +278,7 @@
    {% endif %}
 
    <div class="section">
-       <h2 class="section-title">📈 Valós Idejű Trendk</h2>
+       <h2 class="section-title">📈 Valós idejű trendek</h2>
        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
            <div style="background: #e8f5e8; padding: 20px; border-radius: 10px; text-align: center;">
                <div style="font-size: 2em; color: #27ae60;">{{ stats.get('total_participants', 0) }}</div>
@@ -298,20 +298,20 @@
                        N/A
                    {% endif %}
                </div>
-               <div style="color: #1565c0; font-weight: bold;">Átlagos Értékelés</div>
+               <div style="color: #1565c0; font-weight: bold;">Átlagos értékelés</div>
            </div>
            
            <div style="background: #f3e5f5; padding: 20px; border-radius: 10px; text-align: center;">
                <div style="font-size: 2em; color: #7b1fa2;">
                    {{ (stats.get('total_participants', 0) * stats.get('avg_interactions_per_user', 0)) | round | int }}
                </div>
-               <div style="color: #6a1b9a; font-weight: bold;">Összes Interakció</div>
+               <div style="color: #6a1b9a; font-weight: bold;">Összes interakció</div>
            </div>
        </div>
    </div>
 
    <div class="section">
-       <h2 class="section-title">🎯 Statisztikai Jelentőség</h2>
+       <h2 class="section-title">🎯 Statisztikai jelentőség</h2>
        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
            {% if stats.get('total_participants', 0) < 30 %}
                <div style="color: #e74c3c; font-weight: bold;">⚠️ Előzetes Eredmények</div>
@@ -325,10 +325,10 @@
                    </ul>
                </div>
            {% elif stats.get('total_participants', 0) < 90 %}
-               <div style="color: #f39c12; font-weight: bold;">📊 Alapvető Elemzés</div>
+               <div style="color: #f39c12; font-weight: bold;">📊 Alapvető elemzés</div>
                <p>{{ stats.get('total_participants', 0) }} résztvevővel alapvető statisztikai elemzés lehetséges. <strong>90 fő</strong> elérésekor kezdődhet a megbízható A/B/C testing.</p>
            {% else %}
-               <div style="color: #27ae60; font-weight: bold;">✅ Statisztikailag Megbízható</div>
+               <div style="color: #27ae60; font-weight: bold;">✅ Statisztikailag megbízható</div>
                <p>{{ stats.get('total_participants', 0) }} résztvevővel a statisztikai elemzés megbízható. Kiváló eredmények publikáláshoz!</p>
            {% endif %}
            
