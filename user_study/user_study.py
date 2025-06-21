@@ -1050,7 +1050,55 @@ def debug_esi_zero():
         
     except Exception as e:
         return f"Debug error: {e}"
-
+@user_study_bp.route('/debug/abc_testing')
+def debug_abc_testing():
+    """Debug A/B/C testing működését"""
+    try:
+        result = "<h2>🧪 A/B/C Testing Debug</h2>"
+        
+        # Check recommender status
+        result += f"<h3>🔧 Recommender Status:</h3>"
+        result += f"<p><strong>Recommender type:</strong> {type(recommender).__name__}</p>"
+        result += f"<p><strong>Has hybrid_recommender:</strong> {hasattr(recommender, 'hybrid_recommender')}</p>"
+        
+        if hasattr(recommender, 'hybrid_recommender'):
+            result += f"<p><strong>Hybrid recommender:</strong> {recommender.hybrid_recommender is not None}</p>"
+            
+            if recommender.hybrid_recommender:
+                result += f"<p><strong>Hybrid type:</strong> {type(recommender.hybrid_recommender).__name__}</p>"
+        
+        # Test all three versions
+        test_versions = ['v1', 'v2', 'v3']
+        
+        for version in test_versions:
+            result += f"<h3>📊 {version.upper()} Version Test:</h3>"
+            
+            try:
+                # Get test recommendations
+                recommendations = recommender.get_recommendations(
+                    version=version,
+                    search_ingredients="",
+                    user_preferences={},
+                    n_recommendations=2
+                )
+                
+                result += f"<p><strong>Recommendations count:</strong> {len(recommendations)}</p>"
+                
+                for i, rec in enumerate(recommendations):
+                    result += f"<h4>Recipe {i+1}: {rec.get('title', 'NO TITLE')}</h4>"
+                    result += f"<p><strong>show_scores:</strong> {rec.get('show_scores', 'MISSING')}</p>"
+                    result += f"<p><strong>show_explanation:</strong> {rec.get('show_explanation', 'MISSING')}</p>"
+                    result += f"<p><strong>explanation:</strong> {rec.get('explanation', 'EMPTY')}</p>"
+                    result += f"<p><strong>HSI:</strong> {rec.get('HSI', 'N/A')}</p>"
+                    result += "<hr>"
+                    
+            except Exception as e:
+                result += f"<p>❌ Error testing {version}: {e}</p>"
+        
+        return result
+        
+    except Exception as e:
+        return f"Debug error: {e}", 500
 
 
 # Export
