@@ -135,6 +135,229 @@
             font-weight: bold;
             color: #2e7d32;
         }
+        /* MOBILE RESPONSIVE FIXES - Add this before </style> */
+        @media (max-width: 768px) {
+            /* Main container mobile optimization */
+            body {
+                padding: 10px;
+                min-height: 100vh;
+            }
+            
+            .container {
+                padding: 20px;
+                margin: 0;
+                border-radius: 10px;
+            }
+            
+            /* Header mobile optimization */
+            .header h1 {
+                font-size: 1.8em;
+                line-height: 1.2;
+            }
+            
+            .header p {
+                font-size: 14px;
+            }
+            
+            /* Step cards mobile optimization */
+            .step {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 15px;
+                margin: 15px 0;
+            }
+            
+            .step-number {
+                margin-right: 0;
+                margin-bottom: 10px;
+                align-self: flex-start;
+            }
+            
+            .step-content {
+                width: 100%;
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+            }
+            
+            .step-content h3 {
+                font-size: 1.2em;
+                line-height: 1.3;
+            }
+            
+            .step-content p {
+                font-size: 14px;
+                line-height: 1.5;
+            }
+            
+            .step-content ul {
+                padding-left: 20px;
+            }
+            
+            .step-content li {
+                font-size: 14px;
+                line-height: 1.4;
+                margin-bottom: 8px;
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+            }
+            
+            /* Example box mobile optimization */
+            .example-box {
+                padding: 15px;
+                margin: 10px 0;
+                overflow-x: auto;
+            }
+            
+            /* Rating demo mobile optimization - KEY FIX */
+            .rating-demo {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+                margin: 8px 0;
+                text-align: left;
+            }
+            
+            .rating-demo .star {
+                font-size: 20px;
+                margin-bottom: 5px;
+            }
+            
+            .rating-demo strong {
+                font-size: 14px;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            /* Important note mobile optimization */
+            .important-note {
+                padding: 15px;
+                margin: 15px 0;
+            }
+            
+            .important-note h3 {
+                font-size: 1.1em;
+            }
+            
+            .important-note ul {
+                padding-left: 20px;
+            }
+            
+            .important-note li {
+                font-size: 14px;
+                line-height: 1.4;
+                margin-bottom: 8px;
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+            }
+            
+            /* Button mobile optimization */
+            .btn {
+                font-size: 1em;
+                padding: 12px 20px;
+                width: 100%;
+                text-align: center;
+                margin: 10px 0;
+                box-sizing: border-box;
+            }
+            
+            /* Time estimate mobile optimization */
+            .time-estimate {
+                padding: 12px;
+                font-size: 14px;
+            }
+            
+            /* Version badge mobile optimization */
+            .version-badge {
+                padding: 6px 12px;
+                font-size: 12px;
+                margin: 15px 0;
+                text-align: center;
+            }
+            
+            /* Progress bar mobile optimization */
+            .progress-bar {
+                margin-bottom: 20px;
+            }
+            
+            /* Instruction box mobile optimization */
+            .instruction-box {
+                padding: 20px;
+                margin: 15px 0;
+            }
+            
+            .instruction-box h2 {
+                font-size: 1.3em;
+                line-height: 1.3;
+            }
+            
+            .instruction-box p {
+                font-size: 14px;
+                line-height: 1.5;
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+            }
+            
+            /* Prevent horizontal scroll - CRITICAL */
+            * {
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+            
+            /* Text overflow handling */
+            .step-content p,
+            .step-content li,
+            .important-note p,
+            .important-note li {
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+                hyphens: auto;
+            }
+            
+            /* Long words breaking */
+            .step-content strong,
+            .important-note strong {
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+            }
+        }
+
+        /* Extra small devices (phones) */
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.6em;
+            }
+            
+            .step {
+                padding: 12px;
+            }
+            
+            .step-content h3 {
+                font-size: 1.1em;
+            }
+            
+            .step-content p,
+            .step-content li {
+                font-size: 13px;
+            }
+            
+            .btn {
+                font-size: 0.9em;
+                padding: 10px 15px;
+            }
+            
+            .rating-demo {
+                align-items: flex-start;
+                text-align: left;
+            }
+        }
     </style>
 </head>
 <body>
