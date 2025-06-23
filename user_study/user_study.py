@@ -9,6 +9,8 @@ import sys
 import sqlite3
 import datetime
 import random
+import time
+import hashlib
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -817,10 +819,24 @@ db = UserStudyDatabase()
 recommender = EnhancedRecipeRecommender()
 
 def get_user_version():
-    if 'version' not in session:
-        versions = ['v1', 'v2', 'v3']
-        session['version'] = random.choice(versions)
-    return session['version']
+    """JAVÍTOTT verzió kiválasztás - garantált randomizálás"""
+    import time
+    import hashlib
+    
+    # TESZT: Mindig új randomizálás
+    versions = ['v1', 'v2', 'v3']
+    
+    # Időbélyeg + random kombinálás
+    current_micro = int(time.time() * 1000000)
+    base_random = random.randint(0, 2)
+    time_random = current_micro % 3
+    combined_index = (base_random + time_random) % 3
+    
+    selected_version = versions[combined_index]
+    session['version'] = selected_version
+    
+    print(f"🎯 RANDOMIZÁLT verzió: {selected_version}")
+    return selected_version
 
 # ROUTES
 
@@ -1578,6 +1594,29 @@ def emergency_debug():
     except Exception as e:
         import traceback
         return f"<h1>TOTAL EMERGENCY ERROR:</h1><p>{e}</p><pre>{traceback.format_exc()}</pre>"
+
+@user_study_bp.route('/debug/randomization')
+def debug_randomization():
+    """Randomizálás teszt"""
+    test_versions = []
+    for i in range(10):
+        version = random.choice(['v1', 'v2', 'v3'])
+        test_versions.append(version)
+    
+    current_version = session.get('version', 'Nincs')
+    
+    result = f"""
+    <h2>🎲 Randomizálás Teszt</h2>
+    <p><strong>Jelenlegi verzió:</strong> {current_version}</p>
+    <p><strong>10 teszt:</strong> {', '.join(test_versions)}</p>
+    <p><strong>V1:</strong> {test_versions.count('v1')}/10</p>
+    <p><strong>V2:</strong> {test_versions.count('v2')}/10</p>
+    <p><strong>V3:</strong> {test_versions.count('v3')}/10</p>
+    <p><a href="/debug/randomization">🔄 Újra teszt</a></p>
+    <p><a href="/study">📋 Tanulmány</a></p>
+    """
+    
+    return result
 
 # Export
 __all__ = ['user_study_bp']
