@@ -186,8 +186,18 @@ class HybridRecipeRecommender:
             search_boost * 0.1                      # 10% keresési relevancia
         )
         
-        # 3. EGYSÉGES KIVÁLASZTÁS (minden verzióban UGYANAZ)
-        final_recommendations = candidate_recipes.nlargest(n_recommendations, 'recommendation_score')
+        # Top 15 közül random kiválasztás (50 receptből)
+        top_pool_size = min(15, len(candidate_recipes))
+        top_pool = candidate_recipes.nlargest(top_pool_size, 'recommendation_score')
+        
+        # Random seed és kiválasztás
+        random.seed(int(time.time() * 1000000))
+        if len(top_pool) <= n_recommendations:
+            final_recommendations = top_pool
+        else:
+            final_recommendations = top_pool.sample(n=n_recommendations)
+        
+        print(f"🎲 RANDOMIZÁLT: {n_recommendations} recept a top {len(top_pool)} közül")
         recommendations = final_recommendations.to_dict('records')
         
         # 4. VERZIÓ-SPECIFIKUS INFORMÁCIÓ DISCLOSURE
