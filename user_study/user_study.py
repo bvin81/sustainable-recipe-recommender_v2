@@ -819,25 +819,28 @@ db = UserStudyDatabase()
 recommender = EnhancedRecipeRecommender()
 
 def get_user_version():
-    """JAVÍTOTT verzió kiválasztás - garantált randomizálás"""
-    import time
-    import hashlib
+    """JAVÍTOTT verzió kiválasztás - minden alkalommal új randomizálás"""
     
-    # TESZT: Mindig új randomizálás
+    # TELJESEN ÚJ RANDOMIZÁLÁS minden alkalommal (teszt célokra)
     versions = ['v1', 'v2', 'v3']
     
-    # Időbélyeg + random kombinálás
-    current_micro = int(time.time() * 1000000)
-    base_random = random.randint(0, 2)
-    time_random = current_micro % 3
-    combined_index = (base_random + time_random) % 3
+    # Kombinált randomizálás több forrásból
+    current_time = int(time.time() * 1000000)  # mikroszekundum
+    process_random = random.randint(0, 2)
+    time_random = current_time % 3
     
-    selected_version = versions[combined_index]
+    # Végső index
+    final_index = (process_random + time_random) % 3
+    selected_version = versions[final_index]
+    
+    # Session frissítés
     session['version'] = selected_version
-    
-    print(f"🎯 RANDOMIZÁLT verzió: {selected_version}")
-    return selected_version
-
+    session['randomization_debug'] = {
+        'timestamp': current_time,
+        'process_random': process_random,
+        'time_random': time_random,
+        'final_index': final_index
+    }
 # ROUTES
 
 @user_study_bp.route('/')
@@ -1597,26 +1600,155 @@ def emergency_debug():
 
 @user_study_bp.route('/debug/randomization')
 def debug_randomization():
-    """Randomizálás teszt"""
-    test_versions = []
-    for i in range(10):
-        version = random.choice(['v1', 'v2', 'v3'])
-        test_versions.append(version)
-    
-    current_version = session.get('version', 'Nincs')
-    
-    result = f"""
-    <h2>🎲 Randomizálás Teszt</h2>
-    <p><strong>Jelenlegi verzió:</strong> {current_version}</p>
-    <p><strong>10 teszt:</strong> {', '.join(test_versions)}</p>
-    <p><strong>V1:</strong> {test_versions.count('v1')}/10</p>
-    <p><strong>V2:</strong> {test_versions.count('v2')}/10</p>
-    <p><strong>V3:</strong> {test_versions.count('v3')}/10</p>
-    <p><a href="/debug/randomization">🔄 Újra teszt</a></p>
-    <p><a href="/study">📋 Tanulmány</a></p>
-    """
-    
-    return result
+    """Randomizálás debug és teszt"""
+    try:
+        result = "<h2>🎲 Randomizálás Debug és Teszt</h2>"
+        
+        # Jelenlegi session információ
+        current_version = session.get('version', 'Nincs')
+        debug_info = session.get('randomization_debug', {})
+        
+        result += f"<h3>📊 Jelenlegi Session:</h3>"
+        result += f"<p><strong>Verzió:</strong> {current_version}</p>"
+        result += f"<p><strong>Debug info:</strong> {debug_info}</p>"
+        
+        # 10 új random teszt
+        result += f"<h3>🧪 10 Friss Random Teszt:</h3>"
+        test_versions = []
+        test_details = []
+        
+        for i in range(10):
+            # Friss randomizálás szimuláció
+            current_time = int(time.time() * 1000000) + i  # Kis eltolás
+            process_random = random.randint(0, 2)
+            time_random = current_time % 3
+            final_index = (process_random + time_random) % 3
+            version = ['v1', 'v2', 'v3'][final_index]
+            
+            test_versions.append(version)
+            test_details.append(f"#{i+1}: {version} (p:{process_random}, t:{time_random}, i:{final_index})")
+        
+        result += f"<p><strong>Generált verziók:</strong> {', '.join(test_versions)}</p>"
+        result += f"<h4>Részletek:</h4><ul>"
+        for detail in test_details:
+            result += f"<li>{detail}</li>"
+        result += "</ul>"
+        
+        # Statisztika
+        v1_count = test_versions.count('v1')
+        v2_count = test_versions.count('v2')
+        v3_count = test_versions.count('v3')
+        
+        result += f"<h3>📈 Eloszlás Statisztika:</h3>"
+        result += f"<div style='background: #f0f0f0; padding: 15px; border-radius: 5px;'>"
+        result += f"<strong>V1 (Baseline):</strong> {v1_count}/10 ({v1_count*10}%)<br>"
+        result += f"<strong>V2 (Hybrid):</strong> {v2_count}/10 ({v2_count*10}%)<br>"
+        result += f"<strong>V3 (XAI):</strong> {v3_count}/10 ({v3_count*10}%)"
+        result += f"</div>"
+        
+        # Random teszt különböző seed-ekkel
+        result += f"<h3>🔀 Random Seed Teszt:</h3>"
+        seed_tests = []
+        for seed in [1, 42, 123, int(time.time())]:
+            random.seed(seed)
+            version = random.choice(['v1', 'v2', 'v3'])
+            seed_tests.append(f"Seed {seed}: {version}")
+        
+        result += f"<ul>"
+        for test in seed_tests:
+            result += f"<li>{test}</li>"
+        result += f"</ul>"
+        
+        # Akció linkek
+        result += f"<h3>🔗 Tesztelési Linkek:</h3>"
+        result += f"<div style='margin: 20px 0;'>"
+        result += f"<a href='/force_new_version' style='background: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin: 5px;'>🎯 Új verzió kényszerítése</a><br><br>"
+        result += f"<a href='/study' style='background: #28a745; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin: 5px;'>📋 Tanulmány oldal tesztelése</a><br><br>"
+        result += f"<a href='/debug/randomization' style='background: #ffc107; color: black; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin: 5px;'>🔄 Teszt ismétlése</a><br><br>"
+        result += f"<a href='/clear_session' style='background: #dc3545; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin: 5px;'>🗑️ Session törlése</a>"
+        result += f"</div>"
+        
+        # Technikai információk
+        result += f"<h3>⚙️ Technikai Info:</h3>"
+        result += f"<p><strong>Current timestamp:</strong> {int(time.time())}</p>"
+        result += f"<p><strong>User IP:</strong> {request.remote_addr}</p>"
+        result += f"<p><strong>Session ID:</strong> {session.get('user_id', 'Nincs')}</p>"
+        
+        return result
+        
+    except Exception as e:
+        return f"<h2>❌ Debug hiba</h2><p>{str(e)}</p><pre>{type(e).__name__}</pre>"
+
+@user_study_bp.route('/force_new_version')
+def force_new_version():
+    """Új verzió kényszerítése - teszteléshez"""
+    try:
+        # Session verzió adatok törlése
+        if 'version' in session:
+            old_version = session['version']
+            del session['version']
+        else:
+            old_version = 'Nincs'
+        
+        if 'randomization_debug' in session:
+            del session['randomization_debug']
+        
+        # Új verzió generálás
+        new_version = get_user_version()
+        
+        result = f"""
+        <h2>🎯 Új Verzió Kényszerítve</h2>
+        <div style='background: #e7f3ff; padding: 20px; border-radius: 10px; margin: 20px 0;'>
+            <p><strong>Előző verzió:</strong> {old_version}</p>
+            <p><strong>Új verzió:</strong> <span style='color: #007bff; font-size: 1.2em;'>{new_version}</span></p>
+            <p><strong>Debug info:</strong> {session.get('randomization_debug', 'Nincs')}</p>
+        </div>
+        
+        <h3>🧪 Most tesztelje:</h3>
+        <div style='margin: 20px 0;'>
+            <a href='/study' style='background: #28a745; color: white; padding: 15px 20px; text-decoration: none; border-radius: 5px; margin: 10px;'>📋 Tanulmány oldal - új verzióval</a><br><br>
+            <a href='/force_new_version' style='background: #007bff; color: white; padding: 15px 20px; text-decoration: none; border-radius: 5px; margin: 10px;'>🔄 Újabb verzió kényszerítése</a><br><br>
+            <a href='/debug/randomization' style='background: #ffc107; color: black; padding: 15px 20px; text-decoration: none; border-radius: 5px; margin: 10px;'>🎲 Randomizálás debug</a>
+        </div>
+        
+        <p><small>💡 Tip: Nyissa meg a /study oldalt és ellenőrizze, hogy más recepteket lát-e mint előtte!</small></p>
+        """
+        
+        return result
+        
+    except Exception as e:
+        return f"<h2>❌ Verzió kényszerítési hiba</h2><p>{str(e)}</p>"
+
+@user_study_bp.route('/clear_session')
+def clear_session():
+    """Session törlése - tiszta újrakezdéshez"""
+    try:
+        # Minden session adat mentése debug célokra
+        old_session = dict(session)
+        
+        # Session törlése
+        session.clear()
+        
+        result = f"""
+        <h2>🗑️ Session Törölve</h2>
+        <div style='background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;'>
+            <p>✅ Minden session adat törölve lett.</p>
+            <p><strong>Előző session tartalma:</strong></p>
+            <pre style='background: #e9ecef; padding: 10px; border-radius: 5px; font-size: 12px;'>{old_session}</pre>
+        </div>
+        
+        <h3>🔄 Újrakezdés:</h3>
+        <div style='margin: 20px 0;'>
+            <a href='/' style='background: #28a745; color: white; padding: 15px 20px; text-decoration: none; border-radius: 5px; margin: 10px;'>🏠 Kezdjük újra az elejétől</a><br><br>
+            <a href='/register' style='background: #007bff; color: white; padding: 15px 20px; text-decoration: none; border-radius: 5px; margin: 10px;'>📝 Regisztráció újra</a><br><br>
+            <a href='/debug/randomization' style='background: #ffc107; color: black; padding: 15px 20px; text-decoration: none; border-radius: 5px; margin: 10px;'>🎲 Randomizálás teszt</a>
+        </div>
+        """
+        
+        return result
+        
+    except Exception as e:
+        return f"<h2>❌ Session törlési hiba</h2><p>{str(e)}</p>"
 
 # Export
 __all__ = ['user_study_bp']
